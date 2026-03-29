@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { getLocalStadiumImage } from './data';
 import { landingColors, landingFonts } from './theme';
@@ -9,9 +9,10 @@ type Props = {
   horizontalPadding: number;
   featured: Stadium[];
   onViewAllPress: () => void;
+  onStadiumPress: (stadiumId: string) => void;
 };
 
-function FeaturedStadiumsBase({ horizontalPadding, featured, onViewAllPress }: Props) {
+function FeaturedStadiumsBase({ horizontalPadding, featured, onViewAllPress, onStadiumPress }: Props) {
   const cardWidth = 286;
 
   const getItemLayout = (_: ArrayLike<Stadium> | null | undefined, index: number) => ({
@@ -57,7 +58,7 @@ function FeaturedStadiumsBase({ horizontalPadding, featured, onViewAllPress }: P
         removeClippedSubviews
         renderItem={({ item }) => (
           <Pressable
-            onPress={() => Alert.alert(item.name, 'Stadium detail route will be wired in the next phase.')}
+            onPress={() => onStadiumPress(item.id)}
             style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
             android_ripple={{ color: 'rgba(129, 0, 0, 0.10)' }}>
             <Image
