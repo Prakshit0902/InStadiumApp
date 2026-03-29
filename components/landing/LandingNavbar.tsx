@@ -6,9 +6,11 @@ import { landingColors, landingFonts } from './theme';
 type Props = {
   horizontalPadding: number;
   onScanPress?: () => void;
+  onProfilePress?: () => void;
+  isAuthenticated?: boolean;
 };
 
-function LandingNavbarBase({ horizontalPadding, onScanPress }: Props) {
+function LandingNavbarBase({ horizontalPadding, onScanPress, onProfilePress, isAuthenticated }: Props) {
   const quickTabs = ['Stadiums', 'Sports', 'About', 'Find Stadium'];
 
   return (
@@ -50,11 +52,12 @@ function LandingNavbarBase({ horizontalPadding, onScanPress }: Props) {
           </Pressable>
 
           <Pressable
-            onPress={() => Alert.alert('Coming Soon', 'Profile screen will be wired in the next phase.')}
+            onPress={onProfilePress || (() => Alert.alert('Coming Soon', 'Profile screen will be wired in the next phase.'))}
             android_ripple={{ color: 'rgba(129, 0, 0, 0.12)', borderless: true }}
             hitSlop={8}
             style={({ pressed }) => [styles.avatarButton, pressed && styles.iconPressed]}>
             <Ionicons name="person-outline" size={16} color={landingColors.blush} />
+            {isAuthenticated ? <View style={styles.onlineDot} /> : null}
           </Pressable>
         </View>
       </View>
@@ -148,6 +151,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: landingColors.rose,
+    position: 'relative',
+  },
+  onlineDot: {
+    position: 'absolute',
+    top: 2,
+    right: 1,
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: '#2FA66A',
+    borderWidth: 1,
+    borderColor: landingColors.blush,
   },
   iconPressed: {
     opacity: 0.75,

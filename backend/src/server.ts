@@ -3,6 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import authRouter from './routes/auth.js';
 import chatRouter from './routes/chat.js';
 import clientPortalRouter from './routes/client-portal.js';
 import debugRouter from './routes/debug.js';
@@ -34,6 +35,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/stadiums', stadiumsRouter);
 app.use('/api/sports', sportsRouter);
 app.use('/api/players', playersRouter);
+app.use('/api/auth', authRouter);
 app.use('/api/qr', qrRouter);
 app.use('/api/inquiries', inquiriesRouter);
 app.use('/api/press', pressRouter);

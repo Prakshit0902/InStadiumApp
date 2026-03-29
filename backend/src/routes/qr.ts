@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import QRCode from 'qrcode';
 import { prisma } from '../lib/prisma.js';
+import { requireNeonAdmin, requireNeonAuth } from '../lib/neon-auth.js';
 
 const router = Router();
 
@@ -96,7 +97,7 @@ async function ensureQrPngBuffer(mapping: {
   return Buffer.from(freshDataUrl.replace('data:image/png;base64,', ''), 'base64');
 }
 
-router.get('/mappings', async (_req, res) => {
+router.get('/mappings', requireNeonAuth, requireNeonAdmin, async (_req, res) => {
   try {
     const mappings = await prisma.qRMapping.findMany({
       include: {
@@ -114,7 +115,7 @@ router.get('/mappings', async (_req, res) => {
   }
 });
 
-router.post('/generate-all', async (_req, res) => {
+router.post('/generate-all', requireNeonAuth, requireNeonAdmin, async (_req, res) => {
   try {
     const stadiums = await prisma.stadium.findMany({
       select: {

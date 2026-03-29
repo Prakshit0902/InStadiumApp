@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { sql } from '../lib/db.js';
+import { requireNeonAdmin, requireNeonAuth } from '../lib/neon-auth.js';
 const router = Router();
-router.get('/', async (_req, res) => {
+router.get('/', requireNeonAuth, requireNeonAdmin, async (_req, res) => {
     try {
         const inquiries = await sql `
       SELECT * FROM inquiries
@@ -29,7 +30,7 @@ router.post('/', async (req, res) => {
         res.status(500).json({ error: 'Failed to submit inquiry' });
     }
 });
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireNeonAuth, requireNeonAdmin, async (req, res) => {
     try {
         const { status } = req.body ?? {};
         const [inquiry] = await sql `

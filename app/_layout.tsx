@@ -13,6 +13,7 @@ import {
   PlayfairDisplay_500Medium,
   PlayfairDisplay_600SemiBold,
 } from '@expo-google-fonts/playfair-display';
+import { AuthProvider } from '@/providers/auth-provider';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -36,14 +37,17 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="scan" options={{ title: 'Scan Stadium QR' }} />
-        <Stack.Screen name="stadium/[id]" options={{ headerShown: true, title: 'Stadium' }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="scan" options={{ title: 'Scan Stadium QR' }} />
+          <Stack.Screen name="auth" options={{ title: 'Account' }} />
+          <Stack.Screen name="stadium/[id]" options={{ headerShown: true, title: 'Stadium' }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }

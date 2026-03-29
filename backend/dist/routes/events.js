@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { sql } from '../lib/db.js';
+import { requireNeonAdmin, requireNeonAuth } from '../lib/neon-auth.js';
 const router = Router();
 router.get('/', async (_req, res) => {
     try {
@@ -29,7 +30,7 @@ router.get('/', async (_req, res) => {
         res.status(500).json({ error: 'Failed to fetch events' });
     }
 });
-router.post('/', async (req, res) => {
+router.post('/', requireNeonAuth, requireNeonAdmin, async (req, res) => {
     try {
         const { title, slug, description, date, location, category, status, featured, client_name, testimonial } = req.body ?? {};
         const [event] = await sql `
@@ -75,7 +76,7 @@ router.get('/:id', async (req, res) => {
         return res.status(500).json({ error: 'Failed to fetch event' });
     }
 });
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireNeonAuth, requireNeonAdmin, async (req, res) => {
     try {
         const { title, slug, description, date, location, category, status, featured, client_name, testimonial } = req.body ?? {};
         const [event] = await sql `
@@ -104,7 +105,7 @@ router.put('/:id', async (req, res) => {
         return res.status(500).json({ error: 'Failed to update event' });
     }
 });
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireNeonAuth, requireNeonAdmin, async (req, res) => {
     try {
         await sql `DELETE FROM events WHERE id = ${req.params.id}`;
         res.json({ success: true });

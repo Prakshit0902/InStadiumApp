@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { sql } from '../lib/db.js';
+import { requireNeonAdmin, requireNeonAuth } from '../lib/neon-auth.js';
 
 const router = Router();
 
@@ -25,7 +26,7 @@ router.get('/', async (_req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireNeonAuth, requireNeonAdmin, async (req, res) => {
   try {
     const { publication, headline, url, logo_url, published_date, featured } = req.body ?? {};
 

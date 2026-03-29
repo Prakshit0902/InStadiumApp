@@ -12,11 +12,13 @@ import { NativeSearchStrip } from '@/components/landing/NativeSearchStrip';
 import { SportsGrid } from '@/components/landing/SportsGrid';
 import { landingColors } from '@/components/landing/theme';
 import { useFeaturedStadiums } from '@/components/landing/useFeaturedStadiums';
+import { useAuth } from '@/hooks/use-auth';
 
 type LandingSectionKey = 'sports' | 'divider' | 'featured' | 'nearby' | 'footer';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const { width } = useWindowDimensions();
   const isTablet = width >= 900;
   const sidePadding = useMemo(() => (isTablet ? 44 : 20), [isTablet]);
@@ -52,12 +54,17 @@ export default function HomeScreen() {
   const renderHeader = useCallback(
     () => (
       <View style={styles.sectionsWrap}>
-        <LandingNavbar horizontalPadding={sidePadding} onScanPress={() => router.push('/scan')} />
+        <LandingNavbar
+          horizontalPadding={sidePadding}
+          onScanPress={() => router.push('/scan')}
+          onProfilePress={() => router.push('/auth')}
+          isAuthenticated={isAuthenticated}
+        />
         <NativeSearchStrip horizontalPadding={sidePadding} />
         <HeroSection horizontalPadding={sidePadding} isTablet={isTablet} onExplorePress={() => router.push('/explore')} />
       </View>
     ),
-    [isTablet, router, sidePadding]
+    [isAuthenticated, isTablet, router, sidePadding]
   );
 
   return (
