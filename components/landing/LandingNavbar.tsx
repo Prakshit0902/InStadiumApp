@@ -5,9 +5,10 @@ import { landingColors, landingFonts } from './theme';
 
 type Props = {
   horizontalPadding: number;
+  onScanPress?: () => void;
 };
 
-function LandingNavbarBase({ horizontalPadding }: Props) {
+function LandingNavbarBase({ horizontalPadding, onScanPress }: Props) {
   const quickTabs = ['Stadiums', 'Sports', 'About', 'Find Stadium'];
 
   return (
@@ -24,6 +25,14 @@ function LandingNavbarBase({ horizontalPadding }: Props) {
         </View>
 
         <View style={styles.actions}>
+          <Pressable
+            onPress={onScanPress || (() => Alert.alert('Scan', 'QR scan utility will be wired shortly.'))}
+            android_ripple={{ color: 'rgba(129, 0, 0, 0.12)', borderless: true }}
+            hitSlop={8}
+            style={({ pressed }) => [styles.iconButton, pressed && styles.iconPressed]}>
+            <Ionicons name="qr-code-outline" size={18} color={landingColors.plum} />
+          </Pressable>
+
           <Pressable
             onPress={() => Alert.alert('Coming Soon', 'Search screen is in the next migration phase.')}
             android_ripple={{ color: 'rgba(129, 0, 0, 0.12)', borderless: true }}

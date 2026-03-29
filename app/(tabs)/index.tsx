@@ -52,7 +52,7 @@ export default function HomeScreen() {
   const renderHeader = useCallback(
     () => (
       <View style={styles.sectionsWrap}>
-        <LandingNavbar horizontalPadding={sidePadding} />
+        <LandingNavbar horizontalPadding={sidePadding} onScanPress={() => router.push('/scan')} />
         <NativeSearchStrip horizontalPadding={sidePadding} />
         <HeroSection horizontalPadding={sidePadding} isTablet={isTablet} onExplorePress={() => router.push('/explore')} />
       </View>

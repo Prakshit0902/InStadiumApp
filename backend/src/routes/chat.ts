@@ -3,19 +3,18 @@ import OpenAI from 'openai';
 
 const router = Router();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 router.post('/', async (req, res) => {
   try {
     const { message, stadiumName } = req.body ?? {};
+    const apiKey = process.env.OPENAI_API_KEY;
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!apiKey) {
       return res.json({
         reply: `I'm your assistant for ${stadiumName}. I can help you with venue history, seating, and match schedules!`,
       });
     }
+
+    const openai = new OpenAI({ apiKey });
 
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',

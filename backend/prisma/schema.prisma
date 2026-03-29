@@ -59,5 +59,11 @@ model QRMapping {
   stadiumId             String
   stadium               Stadium  @relation(fields: [stadiumId], references: [id])
   locationInsideStadium String?
+  appDeepLink           String?
+  scanUrl               String?
+  qrImageData           String?  @db.Text
+  qrImageUrl            String?
+  qrPayload             String?
   createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }

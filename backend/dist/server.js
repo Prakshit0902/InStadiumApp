@@ -13,24 +13,17 @@ import pressRouter from './routes/press.js';
 import qrRouter from './routes/qr.js';
 import sportsRouter from './routes/sports.js';
 import stadiumsRouter from './routes/stadiums.js';
-
 const app = express();
-
 const rawOrigins = process.env.CORS_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean);
-
 app.use(helmet());
-app.use(
-  cors({
+app.use(cors({
     origin: rawOrigins && rawOrigins.length > 0 ? rawOrigins : true,
-  })
-);
+}));
 app.use(express.json({ limit: '1mb' }));
 app.use(morgan('dev'));
-
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'instadium-rn-backend' });
+    res.json({ ok: true, service: 'instadium-rn-backend' });
 });
-
 app.use('/api/stadiums', stadiumsRouter);
 app.use('/api/sports', sportsRouter);
 app.use('/api/players', playersRouter);
@@ -41,13 +34,10 @@ app.use('/api/events', eventsRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/debug', debugRouter);
 app.use('/api/client-portal', clientPortalRouter);
-
 app.use((_req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+    res.status(404).json({ error: 'Route not found' });
 });
-
 const port = Number(process.env.PORT || 4000);
-
 app.listen(port, () => {
-  console.log(`InStadium RN backend listening on http://localhost:${port}`);
+    console.log(`InStadium RN backend listening on http://localhost:${port}`);
 });

@@ -14,6 +14,11 @@ This backend lives inside the React Native app workspace and serves real Neon da
 - GET /api/sports
 - GET /api/players
 - GET /api/qr/resolve
+- GET /api/qr/mappings
+- POST /api/qr/generate-all
+- GET /api/qr/open/:code
+- GET /api/qr/download/:code.png
+- GET /api/qr/download/stadium/:stadiumId.png
 - GET /api/inquiries
 - POST /api/inquiries
 - PUT /api/inquiries/:id
@@ -58,3 +63,10 @@ In `instadium-app/.env`:
 - Prisma Client runtime uses adapter connection from `DATABASE_URL` in application code.
 - For migration tooling, `DIRECT_URL` is recommended (non-pooled connection).
 - `/api/inquiries`, `/api/press`, and `/api/events` depend on SQL tables that are separate from Prisma models and should exist in Neon before use.
+
+## QR Mapping Flow
+- Call `POST /api/qr/generate-all` to create mapped QR entries for every stadium.
+- Generated mappings are stored in Neon via Prisma table `QRMapping`.
+- `qrImageData` stores full QR image as a base64 data URL (works without Cloudinary setup).
+- Generated QR payload uses `PUBLIC_API_BASE_URL/api/qr/open/:code` so scanning from a normal camera can open the app via deep link.
+- Use `GET /api/qr/download/stadium/:stadiumId.png` for one-click QR download for a specific stadium.
