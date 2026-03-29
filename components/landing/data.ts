@@ -9,6 +9,15 @@ export const sports: SportItem[] = [
   { name: 'Hockey', icon: require('@/assets/images/landing/sportsIcon/hockey.png') },
 ];
 
+const sportIconMap: Record<string, number> = {
+  cricket: require('@/assets/images/landing/sportsIcon/cricket.png'),
+  football: require('@/assets/images/landing/sportsIcon/football.png'),
+  kabaddi: require('@/assets/images/landing/sportsIcon/kabaddi.png'),
+  badminton: require('@/assets/images/landing/sportsIcon/badminton.png'),
+  tennis: require('@/assets/images/landing/sportsIcon/tennis.png'),
+  hockey: require('@/assets/images/landing/sportsIcon/hockey.png'),
+};
+
 export const nearbyStadiums: NearbyStadium[] = [
   {
     id: 'dy-patil-stadium',
@@ -53,7 +62,74 @@ export const fallbackFeaturedStadiums: Stadium[] = [
   },
 ];
 
+const fallbackByPublicId: Record<string, number> = {
+  wankhedestadium: require('@/assets/images/landing/stadiums/wankhedestadium.jpg'),
+  narendramodistadium: require('@/assets/images/landing/stadiums/narendramodistadium.jpg'),
+  saltlakestadium: require('@/assets/images/landing/stadiums/saltlakestadium.jpg'),
+  dypatilstadium: require('@/assets/images/landing/stadiums/other/dypatilstadium.jpg'),
+  chinnaswamystadium: require('@/assets/images/landing/stadiums/other/chinnaswamystadium.jpg'),
+};
+
+const fallbackDefaultImage = require('@/assets/images/landing/stadium.jpg');
+
+function getCloudinaryCloudName() {
+  return process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+}
+
+function stripExt(value: string) {
+  return value.replace(/\.(png|jpg|jpeg|webp|avif)$/i, '');
+}
+
+function toPublicIdFromPath(value: string) {
+  const noQuery = value.split('?')[0] || value;
+  const parts = noQuery.split('/').filter(Boolean);
+  const fileName = parts[parts.length - 1] || noQuery;
+  return stripExt(fileName).toLowerCase();
+}
+
+function getCloudinaryUrl(publicId: string, options: { width?: number; height?: number; crop?: string } = {}) {
+  const cloudName = getCloudinaryCloudName();
+  if (!cloudName || !publicId) {
+    return null;
+  }
+
+  const transformations: string[] = [];
+  if (options.width) transformations.push(`w_${options.width}`);
+  if (options.height) transformations.push(`h_${options.height}`);
+  if (options.crop) transformations.push(`c_${options.crop}`);
+  transformations.push('f_auto');
+  transformations.push('q_auto');
+
+  return `https://res.cloudinary.com/${cloudName}/image/upload/${transformations.join(',')}/${publicId}`;
+}
+
+export function getSportIconByName(name: string) {
+  const key = (name || '').trim().toLowerCase();
+  return sportIconMap[key] || sportIconMap.cricket;
+}
+
 export function getLocalStadiumImage(image?: string) {
+  if (!image) {
+    return fallbackDefaultImage;
+  }
+
+  const value = String(image);
+
+  if (value.startsWith('http')) {
+    return value;
+  }
+
+  const publicId = toPublicIdFromPath(value);
+  const cloudinaryUrl = getCloudinaryUrl(publicId);
+  if (cloudinaryUrl) {
+    return cloudinaryUrl;
+  }
+
+  const mapped = fallbackByPublicId[publicId];
+  if (mapped) {
+    return mapped;
+  }
+
   switch (image) {
     case 'wankhedestadium':
       return require('@/assets/images/landing/stadiums/wankhedestadium.jpg');
@@ -62,6 +138,6 @@ export function getLocalStadiumImage(image?: string) {
     case 'saltlakestadium':
       return require('@/assets/images/landing/stadiums/saltlakestadium.jpg');
     default:
-      return require('@/assets/images/landing/stadium.jpg');
+      return fallbackDefaultImage;
   }
 }

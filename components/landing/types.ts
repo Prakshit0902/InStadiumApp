@@ -17,5 +17,29 @@ export type NearbyStadium = {
   name: string;
   city: string;
   distance: string;
-  image: number;
+  image: string | number;
+};
+
+export type ApiSport = {
+  id: string;
+  name: string;
+};
+
+export type ApiGalleryImage = {
+  url?: string;
+  caption?: string;
+};
+
+export type ApiStadium = {
+  id: string;
+  name: string;
+  city: string;
+  capacity?: number;
+  galleryImages?: ApiGalleryImage[] | null;
+  sportsPlayed?: ApiSport[];
+};
+
+export type ApiSportResponse = {
+  id: string;
+  name: string;
 };

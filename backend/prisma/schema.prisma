@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Sport {
+  id             String    @id @default(cuid())
+  name           String
+  description    String
+  icon           String?
+  rulebookVideos Json?
+  stadiums       Stadium[] @relation("SportToStadium")
+  players        Player[]
+}
+
+model Stadium {
+  id               String      @id @default(cuid())
+  name             String
+  city             String
+  state            String
+  country          String      @default("India")
+  capacity         Int
+  builtYear        Int
+  description      String
+  latitude         Float?
+  longitude        Float?
+  sportsPlayed     Sport[]     @relation("SportToStadium")
+  galleryImages    Json?
+  historyTimeline  Json?
+  legendaryMoments Json?
+  tournaments      Json?
+  upcomingMatches  Json?
+  nearbyPlaces     Json?
+  players          Player[]    @relation("PlayerToStadium")
+  qrMappings       QRMapping[]
+}
+
+model Player {
+  id             String    @id @default(cuid())
+  name           String
+  sportId        String
+  sport          Sport     @relation(fields: [sportId], references: [id])
+  country        String
+  image          String?
+  achievements   Json?
+  bio            String?
+  careerTimeline Json?
+  stats          Json?
+  updatedAt      DateTime? @db.Timestamp(6)
+  stadiumsPlayed Stadium[] @relation("PlayerToStadium")
+}
+
+model QRMapping {
+  id                    String   @id @default(cuid())
+  qrCode                String   @unique
+  stadiumId             String
+  stadium               Stadium  @relation(fields: [stadiumId], references: [id])
+  locationInsideStadium String?
+  createdAt             DateTime @default(now())
+}

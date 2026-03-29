@@ -12,15 +12,32 @@ type Props = {
 };
 
 function FeaturedStadiumsBase({ horizontalPadding, featured, onViewAllPress }: Props) {
+  const cardWidth = 286;
+
+  const getItemLayout = (_: ArrayLike<Stadium> | null | undefined, index: number) => ({
+    length: cardWidth + 14,
+    offset: (cardWidth + 14) * index,
+    index,
+  });
+
   return (
     <View style={[styles.section, { paddingHorizontal: horizontalPadding }]}> 
-      <Text style={styles.title}>
-        Explore <Text style={styles.titleAccent}>Iconic</Text> Venues
-      </Text>
+      <View style={styles.headerRow}>
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.kicker}>Featured</Text>
+          <Text style={styles.title}>
+            Explore <Text style={styles.titleAccent}>Iconic</Text> Venues
+          </Text>
+        </View>
 
-      <Pressable onPress={onViewAllPress} hitSlop={8}>
-        <Text style={styles.viewAll}>View All Stadiums</Text>
-      </Pressable>
+        <Pressable
+          onPress={onViewAllPress}
+          hitSlop={8}
+          android_ripple={{ color: 'rgba(129, 0, 0, 0.10)', borderless: true }}
+          style={({ pressed }) => [styles.viewAllButton, pressed && styles.viewAllPressed]}>
+          <Text style={styles.viewAll}>View All</Text>
+        </Pressable>
+      </View>
 
       <FlatList
         horizontal
@@ -28,6 +45,13 @@ function FeaturedStadiumsBase({ horizontalPadding, featured, onViewAllPress }: P
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         decelerationRate="fast"
+        initialNumToRender={3}
+        maxToRenderPerBatch={3}
+        updateCellsBatchingPeriod={16}
+        windowSize={3}
+        getItemLayout={getItemLayout}
+        nestedScrollEnabled
+        directionalLockEnabled
         snapToAlignment="start"
         showsHorizontalScrollIndicator={false}
         removeClippedSubviews
@@ -41,7 +65,8 @@ function FeaturedStadiumsBase({ horizontalPadding, featured, onViewAllPress }: P
               style={styles.image}
               contentFit="cover"
               cachePolicy="memory-disk"
-              transition={200}
+              transition={0}
+              recyclingKey={item.id}
             />
 
             <View style={styles.metaRow}>
@@ -49,7 +74,9 @@ function FeaturedStadiumsBase({ horizontalPadding, featured, onViewAllPress }: P
               <Text style={styles.meta}>{item.sport ?? 'Sport'}</Text>
             </View>
             <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.capacity}>Capacity: {(item.capacity ?? 0).toLocaleString()}</Text>
+            <View style={styles.capacityChip}>
+              <Text style={styles.capacity}>Capacity: {(item.capacity ?? 0).toLocaleString()}</Text>
+            </View>
           </Pressable>
         )}
       />
@@ -61,41 +88,67 @@ export const FeaturedStadiums = memo(FeaturedStadiumsBase);
 
 const styles = StyleSheet.create({
   section: {
-    paddingTop: 50,
-    paddingBottom: 34,
+    paddingTop: 26,
+    paddingBottom: 24,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 12,
+    gap: 12,
+  },
+  headerTextWrap: {
+    flex: 1,
+  },
+  kicker: {
+    color: landingColors.rose,
+    textTransform: 'uppercase',
+    letterSpacing: 1.8,
+    fontSize: 10,
+    marginBottom: 4,
+    fontFamily: landingFonts.sansSemiBold,
   },
   title: {
     color: landingColors.plum,
-    fontSize: 34,
-    lineHeight: 42,
-    textAlign: 'center',
+    fontSize: 30,
+    lineHeight: 36,
     fontFamily: landingFonts.serifRegular,
   },
   titleAccent: {
     fontFamily: landingFonts.serifMedium,
     fontStyle: 'italic',
   },
+  viewAllButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(129, 0, 0, 0.18)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
   viewAll: {
     textTransform: 'uppercase',
-    textAlign: 'center',
-    fontSize: 11,
-    letterSpacing: 1.9,
+    fontSize: 10,
+    letterSpacing: 1.2,
     color: landingColors.muted,
-    marginTop: 10,
-    marginBottom: 18,
     fontFamily: landingFonts.sansMedium,
   },
+  viewAllPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.98 }],
+  },
   listContent: {
-    paddingRight: 10,
+    paddingRight: 12,
     gap: 14,
   },
   card: {
-    width: 285,
-    backgroundColor: landingColors.blush,
-    borderRadius: 16,
+    width: 286,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     padding: 10,
     borderWidth: 1,
-    borderColor: 'rgba(129, 0, 0, 0.12)',
+    borderColor: 'rgba(129, 0, 0, 0.14)',
   },
   cardPressed: {
     transform: [{ scale: 0.985 }],
@@ -120,17 +173,23 @@ const styles = StyleSheet.create({
   },
   name: {
     color: landingColors.plum,
-    fontSize: 30,
-    lineHeight: 34,
-    marginBottom: 7,
+    fontSize: 28,
+    lineHeight: 32,
+    marginBottom: 8,
     fontFamily: landingFonts.serifRegular,
+  },
+  capacityChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(129, 0, 0, 0.09)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   capacity: {
     color: landingColors.subtle,
-    fontSize: 11,
-    letterSpacing: 1.1,
+    fontSize: 10,
+    letterSpacing: 1,
     textTransform: 'uppercase',
-    marginBottom: 4,
     fontFamily: landingFonts.sansMedium,
   },
 });

@@ -1,0 +1,60 @@
+# InStadium React Native Backend
+
+This backend lives inside the React Native app workspace and serves real Neon data for mobile consumption.
+
+## Stack
+- Express + TypeScript
+- Prisma Client
+- Neon Postgres
+
+## Implemented Endpoints
+- GET /health
+- GET /api/stadiums
+- GET /api/stadiums/:id
+- GET /api/sports
+- GET /api/players
+- GET /api/qr/resolve
+- GET /api/inquiries
+- POST /api/inquiries
+- PUT /api/inquiries/:id
+- GET /api/press
+- POST /api/press
+- GET /api/events
+- POST /api/events
+- GET /api/events/:id
+- PUT /api/events/:id
+- DELETE /api/events/:id
+- POST /api/chat
+- GET /api/debug
+- GET /api/client-portal/:clientId
+
+These endpoint shapes mirror the existing web backend patterns.
+
+## Setup
+1. Copy `backend/.env.example` to `backend/.env`
+2. Set valid Neon `DATABASE_URL` and `DIRECT_URL`
+3. Install dependencies:
+   - `cd instadium-app/backend`
+   - `npm install`
+4. Generate Prisma client:
+   - `npm run prisma:generate`
+5. Start backend:
+   - `npm run dev`
+
+## Run from App Root
+From `instadium-app`:
+- `npm run backend:dev`
+- `npm run backend:build`
+- `npm run backend:start`
+
+## Mobile App Base URL
+In `instadium-app/.env`:
+- Android emulator: `EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:4010`
+- Physical device: `EXPO_PUBLIC_API_BASE_URL=http://<laptop-ip>:4010`
+
+## Notes
+- Keep backend and Expo app running at the same time during integration.
+- Prisma v7 reads CLI datasource connection from `prisma.config.ts`.
+- Prisma Client runtime uses adapter connection from `DATABASE_URL` in application code.
+- For migration tooling, `DIRECT_URL` is recommended (non-pooled connection).
+- `/api/inquiries`, `/api/press`, and `/api/events` depend on SQL tables that are separate from Prisma models and should exist in Neon before use.

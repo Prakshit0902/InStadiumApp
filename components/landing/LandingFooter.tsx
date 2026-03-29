@@ -7,6 +7,8 @@ type Props = {
 };
 
 function LandingFooterBase({ horizontalPadding }: Props) {
+  const links = ['Portfolio', 'About the Studio', 'Press and Media', 'Inquiries'];
+
   return (
     <View style={[styles.section, { paddingHorizontal: horizontalPadding }]}> 
       <View style={styles.ctaPanel}>
@@ -23,10 +25,16 @@ function LandingFooterBase({ horizontalPadding }: Props) {
       </View>
 
       <View style={styles.linksWrap}>
-        <Text style={styles.link}>Portfolio</Text>
-        <Text style={styles.link}>About the Studio</Text>
-        <Text style={styles.link}>Press and Media</Text>
-        <Text style={styles.link}>Inquiries</Text>
+        {links.map((label) => (
+          <Pressable
+            key={label}
+            onPress={() => Alert.alert('Coming Soon', `${label} page will be wired in the next phase.`)}
+            android_ripple={{ color: 'rgba(129, 0, 0, 0.10)' }}
+            style={({ pressed }) => [styles.linkRow, pressed && styles.linkPressed]}>
+            <Text style={styles.link}>{label}</Text>
+            <Text style={styles.linkArrow}>›</Text>
+          </Pressable>
+        ))}
       </View>
     </View>
   );
@@ -38,21 +46,21 @@ const styles = StyleSheet.create({
   section: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: landingColors.border,
-    paddingTop: 42,
-    paddingBottom: 24,
-    gap: 20,
+    paddingTop: 24,
+    paddingBottom: 22,
+    gap: 18,
   },
   ctaPanel: {
     backgroundColor: 'rgba(196,181,162,0.24)',
     borderRadius: 20,
-    padding: 18,
+    padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(129, 0, 0, 0.12)',
   },
   title: {
     color: landingColors.plum,
-    fontSize: 35,
-    lineHeight: 41,
+    fontSize: 31,
+    lineHeight: 37,
     marginBottom: 14,
     fontFamily: landingFonts.serifRegular,
   },
@@ -73,17 +81,38 @@ const styles = StyleSheet.create({
   buttonText: {
     color: landingColors.blush,
     textTransform: 'uppercase',
-    letterSpacing: 2,
+    letterSpacing: 1.8,
     fontSize: 11,
     fontFamily: landingFonts.sansSemiBold,
   },
   linksWrap: {
-    gap: 10,
+    gap: 8,
+  },
+  linkRow: {
+    minHeight: 44,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(129, 0, 0, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.44)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  linkPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.99 }],
   },
   link: {
     color: landingColors.muted,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 15,
+    lineHeight: 22,
     fontFamily: landingFonts.sansRegular,
+  },
+  linkArrow: {
+    color: landingColors.rose,
+    fontSize: 18,
+    lineHeight: 20,
+    fontFamily: landingFonts.sansMedium,
   },
 });

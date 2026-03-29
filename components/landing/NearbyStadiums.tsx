@@ -1,14 +1,25 @@
 import { memo } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { nearbyStadiums } from './data';
+import { NearbyStadium } from './types';
 import { landingColors, landingFonts } from './theme';
 
 type Props = {
   horizontalPadding: number;
+  nearbyData?: NearbyStadium[];
 };
 
-function NearbyStadiumsBase({ horizontalPadding }: Props) {
+function NearbyStadiumsBase({ horizontalPadding, nearbyData = nearbyStadiums }: Props) {
+  const cardWidth = 286;
+
+  const getItemLayout = (_: ArrayLike<NearbyStadium> | null | undefined, index: number) => ({
+    length: cardWidth + 14,
+    offset: (cardWidth + 14) * index,
+    index,
+  });
+
   return (
     <View style={[styles.section, { paddingHorizontal: horizontalPadding }]}> 
       <Text style={styles.overline}>Nearby</Text>
@@ -18,10 +29,17 @@ function NearbyStadiumsBase({ horizontalPadding }: Props) {
 
       <FlatList
         horizontal
-        data={nearbyStadiums}
+        data={nearbyData}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         decelerationRate="fast"
+        initialNumToRender={2}
+        maxToRenderPerBatch={3}
+        updateCellsBatchingPeriod={16}
+        windowSize={4}
+        getItemLayout={getItemLayout}
+        nestedScrollEnabled
+        directionalLockEnabled
         showsHorizontalScrollIndicator={false}
         removeClippedSubviews
         renderItem={({ item }) => (
@@ -29,14 +47,24 @@ function NearbyStadiumsBase({ horizontalPadding }: Props) {
             style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
             onPress={() => Alert.alert(item.name, 'Nearby stadium detail route will be added in next phase.')}
             android_ripple={{ color: 'rgba(238, 235, 221, 0.20)' }}>
-            <Image source={item.image} style={styles.image} contentFit="cover" cachePolicy="memory-disk" transition={180} />
+            <Image
+              source={item.image}
+              style={styles.image}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={0}
+              recyclingKey={item.id}
+            />
             <View style={styles.overlay} />
             <View style={styles.textWrap}>
               <View style={styles.distanceBadge}>
                 <Text style={styles.distanceText}>{item.distance}</Text>
               </View>
               <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.city}>{item.city}</Text>
+              <View style={styles.cityRow}>
+                <Ionicons name="location-outline" size={12} color="rgba(238, 235, 221, 0.86)" />
+                <Text style={styles.city}>{item.city}</Text>
+              </View>
             </View>
           </Pressable>
         )}
@@ -49,10 +77,8 @@ export const NearbyStadiums = memo(NearbyStadiumsBase);
 
 const styles = StyleSheet.create({
   section: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: landingColors.border,
-    paddingTop: 44,
-    paddingBottom: 28,
+    paddingTop: 24,
+    paddingBottom: 22,
     gap: 12,
   },
   overline: {
@@ -64,8 +90,8 @@ const styles = StyleSheet.create({
   },
   title: {
     color: landingColors.plum,
-    fontSize: 42,
-    lineHeight: 48,
+    fontSize: 34,
+    lineHeight: 40,
     marginBottom: 8,
     fontFamily: landingFonts.serifRegular,
   },
@@ -74,13 +100,13 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   listContent: {
-    paddingRight: 8,
+    paddingRight: 10,
     gap: 14,
   },
   card: {
-    width: 300,
-    height: 290,
-    borderRadius: 28,
+    width: 286,
+    height: 268,
+    borderRadius: 22,
     overflow: 'hidden',
   },
   cardPressed: {
@@ -119,10 +145,15 @@ const styles = StyleSheet.create({
   },
   name: {
     color: landingColors.blush,
-    fontSize: 32,
-    lineHeight: 34,
+    fontSize: 29,
+    lineHeight: 32,
     fontStyle: 'italic',
     fontFamily: landingFonts.serifMedium,
+  },
+  cityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   city: {
     color: 'rgba(238, 235, 221, 0.76)',

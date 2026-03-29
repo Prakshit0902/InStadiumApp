@@ -1,35 +1,57 @@
 import { memo } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { sports } from './data';
+import { SportItem } from './types';
 import { landingColors, landingFonts } from './theme';
 
 type Props = {
   horizontalPadding: number;
+  sportsData?: SportItem[];
 };
 
-function SportsGridBase({ horizontalPadding }: Props) {
+function SportsGridBase({ horizontalPadding, sportsData = sports }: Props) {
+  const cardWidth = 132;
+
+  const getItemLayout = (_: ArrayLike<SportItem> | null | undefined, index: number) => ({
+    length: cardWidth + 10,
+    offset: (cardWidth + 10) * index,
+    index,
+  });
+
   return (
     <View style={[styles.section, { paddingHorizontal: horizontalPadding }]}> 
-      <Text style={styles.title}>
-        Browse by <Text style={styles.titleAccent}>Sport</Text>
-      </Text>
-      <View style={styles.bar} />
+      <Text style={styles.kicker}>Quick Actions</Text>
+      <Text style={styles.title}>Browse By Sport</Text>
 
-      <View style={styles.grid}>
-        {sports.map((sport) => (
+      <FlatList
+        horizontal
+        data={sportsData}
+        keyExtractor={(item) => item.name}
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        contentContainerStyle={styles.listContent}
+        initialNumToRender={4}
+        maxToRenderPerBatch={5}
+        updateCellsBatchingPeriod={16}
+        windowSize={5}
+        getItemLayout={getItemLayout}
+        nestedScrollEnabled
+        directionalLockEnabled
+        removeClippedSubviews
+        renderItem={({ item }) => (
           <Pressable
-            key={sport.name}
             style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-            onPress={() => Alert.alert('Sport Route', `${sport.name} screen will be wired in the next phase.`)}
-            android_ripple={{ color: 'rgba(129, 0, 0, 0.10)' }}>
+            onPress={() => Alert.alert('Sport Route', `${item.name} screen will be wired in the next phase.`)}
+            android_ripple={{ color: 'rgba(129, 0, 0, 0.12)' }}>
             <View style={styles.iconWrap}>
-              <Image source={sport.icon} style={styles.icon} contentFit="contain" cachePolicy="memory-disk" />
+              <Image source={item.icon} style={styles.icon} contentFit="contain" cachePolicy="memory-disk" transition={0} />
             </View>
-            <Text style={styles.label}>{sport.name}</Text>
+            <Text style={styles.meta}>Discover</Text>
+            <Text style={styles.label}>{item.name}</Text>
           </Pressable>
-        ))}
-      </View>
+        )}
+      />
     </View>
   );
 }
@@ -38,53 +60,46 @@ export const SportsGrid = memo(SportsGridBase);
 
 const styles = StyleSheet.create({
   section: {
-    paddingTop: 42,
-    paddingBottom: 40,
+    paddingTop: 26,
+    paddingBottom: 24,
+  },
+  kicker: {
+    color: landingColors.rose,
+    textTransform: 'uppercase',
+    letterSpacing: 2.3,
+    fontSize: 10,
+    marginBottom: 4,
+    fontFamily: landingFonts.sansSemiBold,
   },
   title: {
     color: landingColors.plum,
-    fontSize: 34,
-    lineHeight: 42,
-    textAlign: 'center',
-    fontFamily: landingFonts.serifRegular,
-  },
-  titleAccent: {
+    fontSize: 28,
+    lineHeight: 34,
+    marginBottom: 12,
     fontFamily: landingFonts.serifMedium,
-    fontStyle: 'italic',
   },
-  bar: {
-    width: 66,
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: landingColors.rose,
-    alignSelf: 'center',
-    marginTop: 10,
-    marginBottom: 22,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
+  listContent: {
+    gap: 10,
+    paddingRight: 10,
   },
   card: {
-    width: '31%',
-    minWidth: 96,
-    backgroundColor: landingColors.blush,
+    width: 132,
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
-    paddingVertical: 16,
-    paddingHorizontal: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: 'rgba(129, 0, 0, 0.15)',
-    alignItems: 'center',
+    borderColor: 'rgba(129, 0, 0, 0.13)',
+    alignItems: 'flex-start',
+    gap: 2,
   },
   cardPressed: {
     transform: [{ scale: 0.98 }],
   },
   iconWrap: {
-    width: 50,
-    height: 50,
-    borderRadius: 13,
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     backgroundColor: landingColors.rose,
     alignItems: 'center',
     justifyContent: 'center',
@@ -95,12 +110,19 @@ const styles = StyleSheet.create({
     height: 30,
     tintColor: landingColors.blush,
   },
-  label: {
-    color: landingColors.muted,
+  meta: {
+    color: landingColors.subtle,
     textTransform: 'uppercase',
-    fontSize: 10,
-    letterSpacing: 1.4,
-    textAlign: 'center',
+    fontSize: 9,
+    letterSpacing: 1.1,
+    marginBottom: 2,
+    fontFamily: landingFonts.sansMedium,
+  },
+  label: {
+    color: landingColors.plum,
+    textTransform: 'uppercase',
+    fontSize: 11,
+    letterSpacing: 1,
     fontFamily: landingFonts.sansSemiBold,
   },
 });
