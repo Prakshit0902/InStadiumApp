@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import QRCode from 'qrcode';
 import { prisma } from '../lib/prisma.js';
-import { requireNeonAdmin, requireNeonAuth } from '../lib/neon-auth.js';
+import { requireClerkAdmin, requireClerkAuth } from '../lib/clerk-auth.js';
 const router = Router();
 function getAppScheme() {
     return process.env.APP_DEEPLINK_SCHEME || 'instadiumapp';
@@ -70,7 +70,7 @@ async function ensureQrPngBuffer(mapping) {
     });
     return Buffer.from(freshDataUrl.replace('data:image/png;base64,', ''), 'base64');
 }
-router.get('/mappings', requireNeonAuth, requireNeonAdmin, async (_req, res) => {
+router.get('/mappings', requireClerkAuth, requireClerkAdmin, async (_req, res) => {
     try {
         const mappings = await prisma.qRMapping.findMany({
             include: {
@@ -87,7 +87,7 @@ router.get('/mappings', requireNeonAuth, requireNeonAdmin, async (_req, res) => 
         return res.status(500).json({ error: 'Failed to fetch QR mappings' });
     }
 });
-router.post('/generate-all', requireNeonAuth, requireNeonAdmin, async (_req, res) => {
+router.post('/generate-all', requireClerkAuth, requireClerkAdmin, async (_req, res) => {
     try {
         const stadiums = await prisma.stadium.findMany({
             select: {

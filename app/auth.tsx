@@ -10,14 +10,20 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
 import { useRouter } from 'expo-router';
+import { useSSO } from '@clerk/clerk-expo';
 import { useAuth } from '@/hooks/use-auth';
+
+WebBrowser.maybeCompleteAuthSession();
 
 type Mode = 'sign-in' | 'sign-up';
 
 export default function AuthScreen() {
   const router = useRouter();
   const { initialized, isAuthenticated, user, signIn, signOut, signUp, refreshProfile, updateProfile } = useAuth();
+  const { startSSOFlow } = useSSO();
 
   const [mode, setMode] = useState<Mode>('sign-in');
   const [name, setName] = useState('');
@@ -95,6 +101,42 @@ export default function AuthScreen() {
     setMessage('Signed out.');
   }
 
+  async function onContinueWithProvider(provider: 'oauth_google' | 'oauth_github') {
+    setSubmitting(true);
+    setMessage(null);
+
+    try {
+      const ssoCallbackPath = process.env.EXPO_PUBLIC_CLERK_SSO_CALLBACK_PATH || 'sso-callback';
+      const redirectUrl = AuthSession.makeRedirectUri({ path: ssoCallbackPath });
+      const result = await startSSOFlow({
+        strategy: provider,
+        redirectUrl,
+      });
+
+      if (result.createdSessionId && result.setActive) {
+        await result.setActive({ session: result.createdSessionId });
+        const profile = await refreshProfile();
+        setMessage(profile.ok ? 'Signed in successfully.' : 'Signed in, but backend profile refresh failed.');
+        if (profile.ok) {
+          router.replace('/');
+        }
+        return;
+      }
+
+      const authResultType = result.authSessionResult?.type;
+      if (authResultType === 'cancel' || authResultType === 'dismiss') {
+        setMessage('Sign in was cancelled before completion.');
+        return;
+      }
+
+      setMessage(`SSO callback did not complete. Add this redirect URL in Clerk allowed redirects: ${redirectUrl}`);
+    } catch {
+      setMessage('Unable to complete Clerk OAuth sign in.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function onSaveProfile() {
     setSubmitting(true);
     setMessage(null);
@@ -113,12 +155,12 @@ export default function AuthScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Text style={styles.kicker}>Neon Auth</Text>
+          <Text style={styles.kicker}>Clerk Auth</Text>
           <Text style={styles.title}>{isAuthenticated ? 'Account' : title}</Text>
           <Text style={styles.subtitle}>
             {isAuthenticated
               ? 'Your token is active for protected backend routes.'
-              : 'Sign in with Neon Auth to access protected routes.'}
+                : 'Sign in with Clerk to access protected routes.'}
           </Text>
         </View>
 
@@ -186,6 +228,24 @@ export default function AuthScreen() {
           </View>
         ) : (
           <View style={styles.card}>
+            <Text style={styles.socialTitle}>Continue with Clerk</Text>
+
+            <Pressable
+              style={[styles.button, styles.secondaryButton]}
+              onPress={() => onContinueWithProvider('oauth_google')}
+              disabled={submitting}>
+              <Text style={[styles.buttonText, styles.secondaryButtonText]}>Continue with Google</Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.button, styles.secondaryButton]}
+              onPress={() => onContinueWithProvider('oauth_github')}
+              disabled={submitting}>
+              <Text style={[styles.buttonText, styles.secondaryButtonText]}>Continue with GitHub</Text>
+            </Pressable>
+
+            <Text style={styles.orText}>or use email</Text>
+
             <View style={styles.modeRow}>
               <Pressable
                 onPress={() => setMode('sign-in')}
@@ -289,6 +349,19 @@ const styles = StyleSheet.create({
     color: '#281f1f',
     fontSize: 18,
     fontWeight: '700',
+  },
+  socialTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1b1717',
+    marginBottom: 8,
+  },
+  orText: {
+    textAlign: 'center',
+    color: '#6f6f79',
+    marginBottom: 12,
+    marginTop: 2,
+    fontWeight: '600',
   },
   avatar: {
     width: 80,

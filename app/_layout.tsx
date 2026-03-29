@@ -3,6 +3,8 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { ClerkProvider } from '@clerk/clerk-expo';
+import { tokenCache } from '@clerk/clerk-expo/token-cache';
 import {
   Montserrat_400Regular,
   Montserrat_500Medium,
@@ -23,6 +25,7 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim() || '';
   const [loaded] = useFonts({
     Montserrat_400Regular,
     Montserrat_500Medium,
@@ -37,17 +40,19 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="scan" options={{ title: 'Scan Stadium QR' }} />
-          <Stack.Screen name="auth" options={{ title: 'Account' }} />
-          <Stack.Screen name="stadium/[id]" options={{ headerShown: true, title: 'Stadium' }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </AuthProvider>
+    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+      <AuthProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="scan" options={{ title: 'Scan Stadium QR' }} />
+            <Stack.Screen name="auth" options={{ title: 'Account' }} />
+            <Stack.Screen name="stadium/[id]" options={{ headerShown: true, title: 'Stadium' }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </AuthProvider>
+    </ClerkProvider>
   );
 }

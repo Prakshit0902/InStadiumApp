@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { sql } from '../lib/db.js';
-import { requireNeonAdmin, requireNeonAuth } from '../lib/neon-auth.js';
+import { requireClerkAdmin, requireClerkAuth } from '../lib/clerk-auth.js';
 const router = Router();
 router.get('/', async (_req, res) => {
     try {
@@ -23,7 +23,7 @@ router.get('/', async (_req, res) => {
         res.status(500).json({ error: 'Failed to fetch press features' });
     }
 });
-router.post('/', requireNeonAuth, requireNeonAdmin, async (req, res) => {
+router.post('/', requireClerkAuth, requireClerkAdmin, async (req, res) => {
     try {
         const { publication, headline, url, logo_url, published_date, featured } = req.body ?? {};
         const [feature] = await sql `

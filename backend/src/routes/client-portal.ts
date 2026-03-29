@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { requireNeonAuth } from '../lib/neon-auth.js';
+import { requireClerkAuth } from '../lib/clerk-auth.js';
 
 const router = Router();
 
-router.get('/:clientId', requireNeonAuth, (_req, res) => {
+router.get('/:clientId', requireClerkAuth, (_req, res) => {
   res.json({ success: true });
 });
 

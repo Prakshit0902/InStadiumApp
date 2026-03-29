@@ -6,25 +6,32 @@ type AuthContext = {
   token: string;
 };
 
-const AUTH_CONTEXT_KEY = '__neonAuthContext' as const;
+const AUTH_CONTEXT_KEY = '__clerkAuthContext' as const;
 const AUTH_PREFIX = 'Bearer ';
 
 let cachedJwksUrl: string | null = null;
 let cachedJwks: ReturnType<typeof createRemoteJWKSet> | null = null;
 
 function getAuthConfig() {
-  const jwksUrl = process.env.NEON_AUTH_JWKS_URL?.trim();
-  const issuer = process.env.NEON_AUTH_ISSUER?.trim();
-  const audience = process.env.NEON_AUTH_AUDIENCE?.trim();
+  const issuer = process.env.CLERK_ISSUER?.trim();
+  const explicitJwksUrl = process.env.CLERK_JWKS_URL?.trim();
+  const audience = process.env.CLERK_AUDIENCE?.trim();
+  const authorizedPartiesRaw = process.env.CLERK_AUTHORIZED_PARTIES?.trim();
 
-  if (!jwksUrl || !issuer) {
+  if (!issuer) {
     return null;
   }
 
+  const jwksUrl = explicitJwksUrl || `${issuer.replace(/\/$/, '')}/.well-known/jwks.json`;
+  const authorizedParties = authorizedPartiesRaw
+    ? authorizedPartiesRaw.split(',').map((value) => value.trim()).filter(Boolean)
+    : undefined;
+
   return {
-    jwksUrl,
     issuer,
+    jwksUrl,
     audience: audience || undefined,
+    authorizedParties,
   };
 }
 
@@ -50,13 +57,20 @@ function getBearerToken(req: Request) {
 async function verifyToken(token: string) {
   const config = getAuthConfig();
   if (!config) {
-    throw new Error('NEON_AUTH_NOT_CONFIGURED');
+    throw new Error('CLERK_AUTH_NOT_CONFIGURED');
   }
 
   const verification = await jwtVerify(token, getJwks(config.jwksUrl), {
     issuer: config.issuer,
     audience: config.audience,
   });
+
+  const azp = typeof verification.payload.azp === 'string' ? verification.payload.azp : null;
+  if (config.authorizedParties && config.authorizedParties.length > 0) {
+    if (!azp || !config.authorizedParties.includes(azp)) {
+      throw new Error('CLERK_INVALID_AZP');
+    }
+  }
 
   return verification.payload;
 }
@@ -65,12 +79,12 @@ function saveAuthContext(req: Request, context: AuthContext) {
   Reflect.set(req, AUTH_CONTEXT_KEY, context);
 }
 
-export function getNeonAuthContext(req: Request): AuthContext | null {
+export function getClerkAuthContext(req: Request): AuthContext | null {
   const context = Reflect.get(req, AUTH_CONTEXT_KEY) as AuthContext | undefined;
   return context ?? null;
 }
 
-export async function requireNeonAuth(req: Request, res: Response, next: NextFunction) {
+export async function requireClerkAuth(req: Request, res: Response, next: NextFunction) {
   const token = getBearerToken(req);
   if (!token) {
     return res.status(401).json({ error: 'Missing bearer token' });
@@ -81,23 +95,27 @@ export async function requireNeonAuth(req: Request, res: Response, next: NextFun
     saveAuthContext(req, { payload, token });
     return next();
   } catch (error) {
-    if ((error as Error).message === 'NEON_AUTH_NOT_CONFIGURED') {
+    if ((error as Error).message === 'CLERK_AUTH_NOT_CONFIGURED') {
       return res.status(503).json({
-        error: 'Neon Auth is not configured on backend. Set NEON_AUTH_JWKS_URL and NEON_AUTH_ISSUER.',
+        error: 'Clerk auth is not configured on backend. Set CLERK_ISSUER (and optional CLERK_JWKS_URL).',
       });
+    }
+
+    if ((error as Error).message === 'CLERK_INVALID_AZP') {
+      return res.status(401).json({ error: 'Unauthorized token origin' });
     }
 
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 }
 
-export function requireNeonAdmin(req: Request, res: Response, next: NextFunction) {
-  const auth = getNeonAuthContext(req);
+export function requireClerkAdmin(req: Request, res: Response, next: NextFunction) {
+  const auth = getClerkAuthContext(req);
   if (!auth) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  const allowListRaw = process.env.NEON_AUTH_ADMIN_EMAILS?.trim();
+  const allowListRaw = process.env.CLERK_ADMIN_EMAILS?.trim();
   if (!allowListRaw) {
     return next();
   }
@@ -113,7 +131,9 @@ export function requireNeonAdmin(req: Request, res: Response, next: NextFunction
     return next();
   }
 
-  const email = typeof auth.payload.email === 'string' ? auth.payload.email.toLowerCase() : '';
+  const emailClaim = auth.payload.email ?? auth.payload.email_address;
+  const email = typeof emailClaim === 'string' ? emailClaim.toLowerCase() : '';
+
   if (!email || !allowList.has(email)) {
     return res.status(403).json({ error: 'Admin access required' });
   }

@@ -38,11 +38,12 @@ These endpoint shapes mirror the existing web backend patterns.
 ## Setup
 1. Copy `backend/.env.example` to `backend/.env`
 2. Set valid Neon `DATABASE_URL` and `DIRECT_URL`
-3. Configure Neon Auth JWT verification for protected routes:
-   - `NEON_AUTH_ISSUER`
-   - `NEON_AUTH_JWKS_URL`
-   - Optional: `NEON_AUTH_AUDIENCE`
-   - Optional: `NEON_AUTH_ADMIN_EMAILS` (comma-separated)
+3. Configure Clerk JWT verification for protected routes:
+   - `CLERK_ISSUER`
+   - Optional: `CLERK_JWKS_URL` (auto-derived from issuer if omitted)
+   - Optional: `CLERK_AUDIENCE`
+   - Optional: `CLERK_AUTHORIZED_PARTIES` (comma-separated `azp` values)
+   - Optional: `CLERK_ADMIN_EMAILS` (comma-separated)
 3. Install dependencies:
    - `cd instadium-app/backend`
    - `npm install`
@@ -69,9 +70,9 @@ In `instadium-app/.env`:
 - For migration tooling, `DIRECT_URL` is recommended (non-pooled connection).
 - `/api/inquiries`, `/api/press`, and `/api/events` depend on SQL tables that are separate from Prisma models and should exist in Neon before use.
 
-## Neon Auth Protection
+## Clerk Auth Protection
 - Public routes remain open for browsing data (`/api/stadiums`, `/api/sports`, `/api/players`, `/api/qr/resolve`, `/api/chat`).
-- Protected routes now require a valid Bearer token signed by Neon Auth:
+- Protected routes now require a valid Bearer token signed by Clerk:
    - `/api/auth/me`
    - `/api/debug`
    - `/api/client-portal/:clientId`
@@ -80,7 +81,7 @@ In `instadium-app/.env`:
    - `POST /api/press`
    - `GET /api/qr/mappings`
    - `POST /api/qr/generate-all`
-- If `NEON_AUTH_ADMIN_EMAILS` is set, write/admin routes are restricted to listed emails.
+- If `CLERK_ADMIN_EMAILS` is set, write/admin routes are restricted to listed emails.
 
 ## QR Mapping Flow
 - Call `POST /api/qr/generate-all` to create mapped QR entries for every stadium.
