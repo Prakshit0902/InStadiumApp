@@ -1,0 +1,112 @@
+﻿[
+    {
+        "file":  "stadium.jpg",
+        "public_id":  "instadium/stadium",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784780/instadium/stadium.jpg"
+    },
+    {
+        "file":  "players/manpreetsingh.jpg",
+        "public_id":  "instadium/players/manpreetsingh",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784783/instadium/players/manpreetsingh.jpg"
+    },
+    {
+        "file":  "players/pvsindhu.jpg",
+        "public_id":  "instadium/players/pvsindhu",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784785/instadium/players/pvsindhu.jpg"
+    },
+    {
+        "file":  "players/sachintendulkar.jpg",
+        "public_id":  "instadium/players/sachintendulkar",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784789/instadium/players/sachintendulkar.jpg"
+    },
+    {
+        "file":  "players/sunilchhetri.jpg",
+        "public_id":  "instadium/players/sunilchhetri",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784792/instadium/players/sunilchhetri.jpg"
+    },
+    {
+        "file":  "readme/homepage.png",
+        "public_id":  "instadium/readme/homepage",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784796/instadium/readme/homepage.png"
+    },
+    {
+        "file":  "readme/press.png",
+        "public_id":  "instadium/readme/press",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784801/instadium/readme/press.png"
+    },
+    {
+        "file":  "readme/studio.png",
+        "public_id":  "instadium/readme/studio",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784803/instadium/readme/studio.png"
+    },
+    {
+        "file":  "sportsIcon/badminton.png",
+        "public_id":  "instadium/sportsIcon/badminton",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784805/instadium/sportsIcon/badminton.png"
+    },
+    {
+        "file":  "sportsIcon/cricket.png",
+        "public_id":  "instadium/sportsIcon/cricket",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784806/instadium/sportsIcon/cricket.png"
+    },
+    {
+        "file":  "sportsIcon/football.png",
+        "public_id":  "instadium/sportsIcon/football",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784808/instadium/sportsIcon/football.png"
+    },
+    {
+        "file":  "sportsIcon/hockey.png",
+        "public_id":  "instadium/sportsIcon/hockey",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784809/instadium/sportsIcon/hockey.png"
+    },
+    {
+        "file":  "sportsIcon/kabaddi.png",
+        "public_id":  "instadium/sportsIcon/kabaddi",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784812/instadium/sportsIcon/kabaddi.png"
+    },
+    {
+        "file":  "sportsIcon/tennis.png",
+        "public_id":  "instadium/sportsIcon/tennis",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784813/instadium/sportsIcon/tennis.png"
+    },
+    {
+        "file":  "stadiums/kalingastadium.jpg",
+        "public_id":  "instadium/stadiums/kalingastadium",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784816/instadium/stadiums/kalingastadium.jpg"
+    },
+    {
+        "file":  "stadiums/narendramodistadium.jpg",
+        "public_id":  "instadium/stadiums/narendramodistadium",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784818/instadium/stadiums/narendramodistadium.jpg"
+    },
+    {
+        "file":  "stadiums/prakashpadukonebadmintonacademy.jpg",
+        "public_id":  "instadium/stadiums/prakashpadukonebadmintonacademy",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784821/instadium/stadiums/prakashpadukonebadmintonacademy.jpg"
+    },
+    {
+        "file":  "stadiums/rkkhannastadium.jpg",
+        "public_id":  "instadium/stadiums/rkkhannastadium",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784826/instadium/stadiums/rkkhannastadium.jpg"
+    },
+    {
+        "file":  "stadiums/saltlakestadium.jpg",
+        "public_id":  "instadium/stadiums/saltlakestadium",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784832/instadium/stadiums/saltlakestadium.jpg"
+    },
+    {
+        "file":  "stadiums/wankhedestadium.jpg",
+        "public_id":  "instadium/stadiums/wankhedestadium",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784835/instadium/stadiums/wankhedestadium.jpg"
+    },
+    {
+        "file":  "stadiums/other/chinnaswamystadium.jpg",
+        "public_id":  "instadium/stadiums/other/chinnaswamystadium",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784837/instadium/stadiums/other/chinnaswamystadium.jpg"
+    },
+    {
+        "file":  "stadiums/other/dypatilstadium.jpg",
+        "public_id":  "instadium/stadiums/other/dypatilstadium",
+        "secure_url":  "https://res.cloudinary.com/daud2uqqf/image/upload/v1774784839/instadium/stadiums/other/dypatilstadium.jpg"
+    }
+]

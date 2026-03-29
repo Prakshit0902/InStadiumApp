@@ -24,14 +24,14 @@ export const nearbyStadiums: NearbyStadium[] = [
     name: 'DY Patil Stadium',
     city: 'Navi Mumbai',
     distance: '12.5 km',
-    image: require('@/assets/images/landing/stadiums/other/dypatilstadium.jpg'),
+    image: 'https://res.cloudinary.com/daud2uqqf/image/upload/v1774784839/instadium/stadiums/other/dypatilstadium.jpg',
   },
   {
     id: 'm-chinnaswamy-stadium',
     name: 'M. Chinnaswamy Stadium',
     city: 'Bengaluru',
     distance: '4.2 km',
-    image: require('@/assets/images/landing/stadiums/other/chinnaswamystadium.jpg'),
+    image: 'https://res.cloudinary.com/daud2uqqf/image/upload/v1774784837/instadium/stadiums/other/chinnaswamystadium.jpg',
   },
 ];
 
@@ -82,6 +82,10 @@ function stripExt(value: string) {
 
 function toPublicIdFromPath(value: string) {
   const noQuery = value.split('?')[0] || value;
+  if (noQuery.startsWith('/images/')) {
+    const withoutRoot = noQuery.replace(/^\/images\//, '');
+    return `instadium/${stripExt(withoutRoot).toLowerCase()}`;
+  }
   const parts = noQuery.split('/').filter(Boolean);
   const fileName = parts[parts.length - 1] || noQuery;
   return stripExt(fileName).toLowerCase();
