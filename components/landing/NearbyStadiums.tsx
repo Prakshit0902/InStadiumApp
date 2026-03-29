@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { nearbyStadiums } from './data';
@@ -9,9 +9,10 @@ import { landingColors, landingFonts } from './theme';
 type Props = {
   horizontalPadding: number;
   nearbyData?: NearbyStadium[];
+  onStadiumPress: (stadiumId: string) => void;
 };
 
-function NearbyStadiumsBase({ horizontalPadding, nearbyData = nearbyStadiums }: Props) {
+function NearbyStadiumsBase({ horizontalPadding, nearbyData = nearbyStadiums, onStadiumPress }: Props) {
   const cardWidth = 286;
 
   const getItemLayout = (_: ArrayLike<NearbyStadium> | null | undefined, index: number) => ({
@@ -45,7 +46,7 @@ function NearbyStadiumsBase({ horizontalPadding, nearbyData = nearbyStadiums }: 
         renderItem={({ item }) => (
           <Pressable
             style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-            onPress={() => Alert.alert(item.name, 'Nearby stadium detail route will be added in next phase.')}
+            onPress={() => onStadiumPress(item.id)}
             android_ripple={{ color: 'rgba(238, 235, 221, 0.20)' }}>
             <Image
               source={item.image}

@@ -10,6 +10,9 @@
 !.yarn/releases
 !.yarn/versions
 
+/.vscode
+/.expo
+
 # testing
 /coverage
 
@@ -19,6 +22,8 @@
 
 # production
 /build
+
+/android
 
 # misc
 .DS_Store
