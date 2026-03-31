@@ -5,7 +5,7 @@ import { prisma } from '../lib/prisma.js';
 const router = Router();
 
 type ChatAction = 'answer_only' | 'show_links' | 'ask_clarification';
-type EntityType = 'player' | 'stadium' | 'sport';
+type EntityType = 'player' | 'stadium' | 'sport' | 'external';
 type ChatLanguage = 'en' | 'hi' | 'auto';
 type InputMode = 'text' | 'voice';
 
@@ -14,6 +14,12 @@ type ChatRequestBody = {
   transcript?: unknown;
   language?: unknown;
   inputMode?: unknown;
+  location?: unknown;
+};
+
+type ChatLocation = {
+  latitude: number;
+  longitude: number;
 };
 
 type ChatLink = {
@@ -25,11 +31,17 @@ type ChatLink = {
   score: number;
 };
 
+type ChatStructuredSection = {
+  title: string;
+  items: string[];
+};
+
 type ChatResponse = {
   reply: string;
   action: ChatAction;
   links: ChatLink[];
   clarifications: string[];
+  structured: ChatStructuredSection[];
   meta: {
     query: string;
     language: Exclude<ChatLanguage, 'auto'>;
@@ -144,6 +156,24 @@ function normalizeText(value: string): string {
     .trim();
 }
 
+function sanitizeModelOutput(value: string): string {
+  return value
+    .replace(/<think>[\s\S]*?<\/think>/gi, ' ')
+    .replace(/<think>|<\/think>/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function extractFirstJsonObject(value: string): string | null {
+  const first = value.indexOf('{');
+  const last = value.lastIndexOf('}');
+  if (first === -1 || last === -1 || last <= first) {
+    return null;
+  }
+
+  return value.slice(first, last + 1);
+}
+
 function containsDevanagari(value: string): boolean {
   return /[\u0900-\u097F]/.test(value);
 }
@@ -204,6 +234,27 @@ function parseLanguage(value: unknown): ChatLanguage {
 
 function parseInputMode(value: unknown): InputMode {
   return value === 'voice' ? 'voice' : 'text';
+}
+
+function parseLocation(value: unknown): ChatLocation | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const rawLat = (value as { latitude?: unknown }).latitude;
+  const rawLng = (value as { longitude?: unknown }).longitude;
+  const latitude = typeof rawLat === 'number' ? rawLat : Number.NaN;
+  const longitude = typeof rawLng === 'number' ? rawLng : Number.NaN;
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+    return null;
+  }
+
+  return { latitude, longitude };
 }
 
 function isDomainRelevantQuery(query: string): boolean {
@@ -277,6 +328,101 @@ function buildRoute(entityType: EntityType, id: string): string {
   return `/sport/${encodeURIComponent(id)}`;
 }
 
+function toWikiSlug(value: string): string {
+  return value
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[^\p{L}\p{N}_-]/gu, '');
+}
+
+function buildWikipediaLink(entityName: string, language: 'en' | 'hi', entityTypeHint?: EntityType | null): ChatLink | null {
+  const cleanName = entityName.trim();
+  if (!cleanName) {
+    return null;
+  }
+
+  const slug = toWikiSlug(cleanName);
+  if (!slug) {
+    return null;
+  }
+
+  const langCode = language === 'hi' ? 'hi' : 'en';
+  const wikiUrl = `https://${langCode}.wikipedia.org/wiki/${encodeURIComponent(slug)}`;
+
+  return {
+    id: `wiki:${slug.toLowerCase()}`,
+    entityType: 'external',
+    label: language === 'hi' ? `${cleanName} (Wikipedia)` : `${cleanName} (Wikipedia)`,
+    subtitle:
+      language === 'hi'
+        ? 'Open external reference page'
+        : 'Open external reference page',
+    route: wikiUrl,
+    score: entityTypeHint === 'external' ? 0.55 : 0.78,
+  };
+}
+
+function buildStructuredSections(params: {
+  language: 'en' | 'hi';
+  query: string;
+  links: ChatLink[];
+  reason: 'nearest_missing_location' | 'relevant_no_match' | 'low_confidence' | 'out_of_scope' | 'with_links';
+}): ChatStructuredSection[] {
+  const { language, query, links, reason } = params;
+
+  if (reason === 'out_of_scope') {
+    return [
+      {
+        title: language === 'hi' ? 'Main Kya Help Kar Sakta Hoon' : 'What I Can Help With',
+        items:
+          language === 'hi'
+            ? ['Player profiles', 'Stadium details', 'Sports pages', 'Nearby stadium suggestions']
+            : ['Player profiles', 'Stadium details', 'Sports pages', 'Nearby stadium suggestions'],
+      },
+    ];
+  }
+
+  if (reason === 'nearest_missing_location') {
+    return [
+      {
+        title: language === 'hi' ? 'Nearest Stadium Ke Liye' : 'To Find Nearest Stadium',
+        items:
+          language === 'hi'
+            ? ['Location permission allow karein', 'Dobara query bhejein', 'Main closest stadium links dikhata hoon']
+            : ['Allow location permission', 'Send the query again', 'I will return closest stadium links'],
+      },
+    ];
+  }
+
+  const sections: ChatStructuredSection[] = [];
+
+  if (links.length > 0) {
+    sections.push({
+      title: language === 'hi' ? 'Relevant Pages' : 'Relevant Pages',
+      items: links.slice(0, 4).map((item) => item.label),
+    });
+  }
+
+  if (reason === 'relevant_no_match' || reason === 'low_confidence') {
+    sections.push({
+      title: language === 'hi' ? 'Recommended Next Steps' : 'Recommended Next Steps',
+      items:
+        language === 'hi'
+          ? [`Query refine karein: "${query}"`, 'Player, stadium, ya sport ka exact naam de', 'Link cards se page open karein']
+          : [`Refine the query: "${query}"`, 'Provide an exact player, stadium, or sport name', 'Use link cards to open pages'],
+    });
+  }
+
+  if (sections.length === 0) {
+    sections.push({
+      title: language === 'hi' ? 'Query Summary' : 'Query Summary',
+      items: [query],
+    });
+  }
+
+  return sections;
+}
+
 function buildFallbackReply(language: 'en' | 'hi', query: string): string {
   if (language === 'hi') {
     return `Mujhe "${query}" ke liye app mein direct page nahin mila, lekin main InStadium context mein madad kar sakta hoon. Aap player, stadium ya sport ka naam pooch sakte hain.`;
@@ -291,6 +437,84 @@ function buildGeneralContextReply(language: 'en' | 'hi', query: string): string 
   }
 
   return `I couldn't find an exact page for "${query}". I can still help with related players, stadiums, and sports.`;
+}
+
+function isNearestIntent(query: string): boolean {
+  const normalized = normalizeText(query);
+  if (!normalized) {
+    return false;
+  }
+
+  return /(nearest|closest|nearby|near me|around me|pass mein|sabse nazdik|nazdik)/i.test(normalized);
+}
+
+function getDistanceKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const earth = 6371;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const x =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+  return earth * c;
+}
+
+async function callSarvamContextAnswer(
+  query: string,
+  language: 'en' | 'hi',
+  contextLinks: ChatLink[]
+): Promise<string | null> {
+  const apiKey = process.env.SARVAM_API_KEY?.trim();
+  if (!apiKey) {
+    return null;
+  }
+
+  const endpoint = process.env.SARVAM_CHAT_URL?.trim() || 'https://api.sarvam.ai/v1/chat/completions';
+  const model = process.env.SARVAM_MODEL?.trim() || 'sarvam-m';
+  const contextSummary = contextLinks
+    .slice(0, 3)
+    .map((item) => `${item.entityType}: ${item.label}${item.subtitle ? ` (${item.subtitle})` : ''}`)
+    .join('; ');
+
+  const instruction = [
+    'You are InStadium assistant for sports app context only.',
+    `Reply language: ${language === 'hi' ? 'Hindi' : 'English'}.`,
+    'Give a concise and practical answer in 2-4 sentences.',
+    'If exact page is unavailable, still provide helpful app-context guidance.',
+    'Do not hallucinate IDs, routes, or unavailable facts.',
+    `Known app context: ${contextSummary || 'No direct entities matched.'}`,
+    `User query: ${query}`,
+  ].join('\n');
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'api-subscription-key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.3,
+        max_tokens: 280,
+        messages: [{ role: 'user', content: instruction }],
+      }),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const rawContent = payload.choices?.[0]?.message?.content?.trim() ?? '';
+    const content = sanitizeModelOutput(rawContent);
+    return content || null;
+  } catch {
+    return null;
+  }
 }
 
 async function callSarvamExtraction(query: string, language: ChatLanguage): Promise<SarvamExtraction | null> {
@@ -345,12 +569,18 @@ async function callSarvamExtraction(query: string, language: ChatLanguage): Prom
       choices?: Array<{ message?: { content?: string } }>;
     };
 
-    const content = payload.choices?.[0]?.message?.content;
-    if (!content) {
+    const rawContent = payload.choices?.[0]?.message?.content;
+    if (!rawContent) {
       return null;
     }
 
-    const parsed = JSON.parse(content) as Partial<SarvamExtraction>;
+    const cleaned = sanitizeModelOutput(rawContent);
+    const jsonPayload = extractFirstJsonObject(cleaned);
+    if (!jsonPayload) {
+      return null;
+    }
+
+    const parsed = JSON.parse(jsonPayload) as Partial<SarvamExtraction>;
     const answerLanguage = parsed.answerLanguage === 'hi' ? 'hi' : 'en';
     const intentValues = new Set(['player_info', 'stadium_info', 'sport_info', 'general_query', 'navigation']);
     const intent = intentValues.has(String(parsed.intent))
@@ -506,6 +736,52 @@ async function resolveNearbyStadiumLinks(): Promise<ChatLink[]> {
   }));
 }
 
+async function resolveNearestStadiumLinks(query: string, location: ChatLocation): Promise<ChatLink[]> {
+  const sportKeyword = detectSportKeyword(query);
+  const rows = await prisma.stadium.findMany({
+    where: {
+      latitude: { not: null },
+      longitude: { not: null },
+      ...(sportKeyword
+        ? {
+            sportsPlayed: {
+              some: {
+                name: {
+                  contains: sportKeyword,
+                  mode: 'insensitive',
+                },
+              },
+            },
+          }
+        : {}),
+    },
+    include: {
+      sportsPlayed: {
+        select: { name: true },
+        take: 3,
+      },
+    },
+    take: 80,
+  });
+
+  const nearest = rows
+    .map((row) => ({
+      row,
+      distanceKm: getDistanceKm(location.latitude, location.longitude, row.latitude as number, row.longitude as number),
+    }))
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .slice(0, 5);
+
+  return nearest.map((item, idx) => ({
+    id: item.row.id,
+    entityType: 'stadium',
+    label: item.row.name,
+    subtitle: `${item.row.city}, ${item.row.country} • ${item.distanceKm.toFixed(1)} km away`,
+    route: buildRoute('stadium', item.row.id),
+    score: Number((0.97 - idx * 0.03).toFixed(2)),
+  }));
+}
+
 async function resolveSportsLinks(): Promise<ChatLink[]> {
   const sports = await prisma.sport.findMany({
     orderBy: { name: 'asc' },
@@ -530,18 +806,33 @@ router.post('/', async (req, res) => {
     const query = message || transcript;
     const languagePreference = parseLanguage(body.language);
     const inputMode = parseInputMode(body.inputMode);
+    const location = parseLocation(body.location);
 
     if (!query) {
       return res.status(400).json({ error: 'message or transcript is required' });
     }
 
     const listIntent = detectListIntent(query);
-    if (listIntent) {
+    const nearestIntent = isNearestIntent(query) && /stadium|ground|cricket|football|hockey|kabaddi|sport/i.test(normalizeText(query));
+    if (listIntent || nearestIntent) {
       const answerLanguage: 'en' | 'hi' = containsDevanagari(query) ? 'hi' : 'en';
       let links: ChatLink[] = [];
       let reply = '';
 
-      if (listIntent === 'top_players') {
+      if (nearestIntent) {
+        if (!location) {
+          reply =
+            answerLanguage === 'hi'
+              ? 'Nearest stadium batane ke liye mujhe aapki location chahiye. Location permission allow karke phir se try karein.'
+              : 'To find the nearest stadium, I need your location. Please allow location access and try again.';
+        } else {
+          links = await resolveNearestStadiumLinks(query, location);
+          reply =
+            answerLanguage === 'hi'
+              ? 'Aapki location ke hisaab se yeh nearest stadium pages mile hain.'
+              : 'Based on your location, these are the nearest stadium pages.';
+        }
+      } else if (listIntent === 'top_players') {
         links = await resolveTopPlayersLinks(query);
         reply =
           answerLanguage === 'hi'
@@ -561,11 +852,25 @@ router.post('/', async (req, res) => {
             : 'These are sports pages available in the app.';
       }
 
+      const inferredEntity = inferEntityNameFromQuery(query);
+      if (inferredEntity) {
+        const wiki = buildWikipediaLink(inferredEntity, answerLanguage, null);
+        if (wiki) {
+          links = [...links, wiki];
+        }
+      }
+
       const response: ChatResponse = {
         reply,
         action: links.length > 0 ? 'show_links' : 'answer_only',
         links,
         clarifications: [],
+        structured: buildStructuredSections({
+          language: answerLanguage,
+          query,
+          links,
+          reason: nearestIntent && !location ? 'nearest_missing_location' : 'with_links',
+        }),
         meta: {
           query,
           language: answerLanguage,
@@ -577,7 +882,7 @@ router.post('/', async (req, res) => {
 
       logChatTelemetry({
         stage: 'final',
-        reason: `list_intent_${listIntent}`,
+        reason: nearestIntent ? 'nearest_stadium_intent' : `list_intent_${listIntent}`,
         query,
         action: response.action,
         language: answerLanguage,
@@ -677,6 +982,12 @@ router.post('/', async (req, res) => {
         action: 'answer_only',
         links: [],
         clarifications: [],
+        structured: buildStructuredSections({
+          language: answerLanguage,
+          query,
+          links: [],
+          reason: 'out_of_scope',
+        }),
         meta: {
           query,
           language: answerLanguage,
@@ -705,11 +1016,21 @@ router.post('/', async (req, res) => {
     }
 
     if (rankedLinks.length === 0) {
+      const llmReply = await callSarvamContextAnswer(query, answerLanguage, rankedLinks);
+      const wikiName = extracted?.entityNameEnglish || extracted?.entityName || inferredName;
+      const wikiLink = wikiName ? buildWikipediaLink(wikiName, answerLanguage, extracted?.entityType ?? null) : null;
+      const links = wikiLink ? [wikiLink] : [];
       const response: ChatResponse = {
-        reply: buildFallbackReply(answerLanguage, query),
-        action: 'answer_only',
-        links: [],
+        reply: sanitizeModelOutput(llmReply || buildFallbackReply(answerLanguage, query)),
+        action: links.length > 0 ? 'show_links' : 'answer_only',
+        links,
         clarifications: [],
+        structured: buildStructuredSections({
+          language: answerLanguage,
+          query,
+          links,
+          reason: 'relevant_no_match',
+        }),
         meta: {
           query,
           language: answerLanguage,
@@ -741,11 +1062,21 @@ router.post('/', async (req, res) => {
       Boolean(second) && (topScore < HIGH_CONFIDENCE_SCORE || topScore - secondScore < CLARIFY_SCORE_GAP);
 
     if (topScore < MIN_NAVIGATION_SCORE) {
+      const llmReply = await callSarvamContextAnswer(query, answerLanguage, rankedLinks);
+      const wikiName = extracted?.entityNameEnglish || extracted?.entityName || inferredName;
+      const wikiLink = wikiName ? buildWikipediaLink(wikiName, answerLanguage, extracted?.entityType ?? null) : null;
+      const links = wikiLink ? [wikiLink, ...rankedLinks.slice(0, 2)] : rankedLinks.slice(0, 2);
       const response: ChatResponse = {
-        reply: buildGeneralContextReply(answerLanguage, query),
-        action: 'answer_only',
-        links: [],
+        reply: sanitizeModelOutput(llmReply || buildGeneralContextReply(answerLanguage, query)),
+        action: links.length > 0 ? 'show_links' : 'answer_only',
+        links,
         clarifications: [],
+        structured: buildStructuredSections({
+          language: answerLanguage,
+          query,
+          links,
+          reason: 'low_confidence',
+        }),
         meta: {
           query,
           language: answerLanguage,
@@ -774,14 +1105,23 @@ router.post('/', async (req, res) => {
     }
 
     if (shouldClarify) {
+      const wikiName = extracted?.entityNameEnglish || extracted?.entityName || inferredName;
+      const wikiLink = wikiName ? buildWikipediaLink(wikiName, answerLanguage, extracted?.entityType ?? null) : null;
+      const clarifyLinks = wikiLink ? [...rankedLinks.slice(0, 3), wikiLink] : rankedLinks.slice(0, 3);
       const response: ChatResponse = {
         reply:
           answerLanguage === 'hi'
             ? 'Mujhe kuch matching options mile hain. Aap inmein se kis ke baare mein dekhna chahte hain?'
             : 'I found a few close matches. Which one would you like to open?',
         action: 'ask_clarification',
-        links: rankedLinks.slice(0, 3),
-        clarifications: rankedLinks.slice(0, 3).map((item) => item.label),
+        links: clarifyLinks,
+        clarifications: clarifyLinks.map((item) => item.label),
+        structured: buildStructuredSections({
+          language: answerLanguage,
+          query,
+          links: clarifyLinks,
+          reason: 'with_links',
+        }),
         meta: {
           query,
           language: answerLanguage,
@@ -810,14 +1150,23 @@ router.post('/', async (req, res) => {
     }
 
     const links = rankedLinks.slice(0, 3);
+    const wikiName = extracted?.entityNameEnglish || extracted?.entityName || inferredName || links[0]?.label;
+    const wikiLink = wikiName ? buildWikipediaLink(wikiName, answerLanguage, extracted?.entityType ?? null) : null;
+    const finalLinks = wikiLink ? [...links, wikiLink] : links;
     const response: ChatResponse = {
       reply:
         answerLanguage === 'hi'
-          ? `Maine ${links[0].label} ke liye page find kar liya hai. Neeche se open kar sakte hain.`
-          : `I found a page for ${links[0].label}. You can open it from the links below.`,
+          ? `Maine ${links[0].label} ke liye page find kar liya hai. Neeche links mein app page aur Wikipedia reference dono milenge.`
+          : `I found a page for ${links[0].label}. You can open both the app page and Wikipedia reference below.`,
       action: 'show_links',
-      links,
+      links: finalLinks,
       clarifications: [],
+      structured: buildStructuredSections({
+        language: answerLanguage,
+        query,
+        links: finalLinks,
+        reason: 'with_links',
+      }),
       meta: {
         query,
         language: answerLanguage,

@@ -1,7 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   ActivityIndicator,
+  Easing,
+  Keyboard,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -12,11 +16,17 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as Location from 'expo-location';
 import { getApiBaseUrl } from '@/components/stadium/utils';
 import { landingColors, landingFonts } from '@/components/landing/theme';
 
 type ChatAction = 'answer_only' | 'show_links' | 'ask_clarification';
-type EntityType = 'player' | 'stadium' | 'sport';
+type EntityType = 'player' | 'stadium' | 'sport' | 'external';
+
+type ChatStructuredSection = {
+  title: string;
+  items: string[];
+};
 
 type ChatLink = {
   id: string;
@@ -31,6 +41,12 @@ type ChatApiResponse = {
   reply: string;
   action: ChatAction;
   links: ChatLink[];
+  structured?: ChatStructuredSection[];
+};
+
+type ChatLocation = {
+  latitude: number;
+  longitude: number;
 };
 
 type ChatMessage = {
@@ -38,6 +54,7 @@ type ChatMessage = {
   role: 'user' | 'assistant';
   text: string;
   links?: ChatLink[];
+  structured?: ChatStructuredSection[];
   action?: ChatAction;
 };
 
@@ -87,6 +104,15 @@ function generateId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function queryNeedsLocation(query: string): boolean {
+  const value = query.trim().toLowerCase();
+  if (!value) {
+    return false;
+  }
+
+  return /(nearest|closest|nearby|near me|around me|pass mein|nazdik|naazdik)/i.test(value);
+}
+
 type RuntimeSpeechModule = {
   requestPermissionsAsync: () => Promise<{ granted?: boolean }>;
   start: (options?: Record<string, unknown>) => void;
@@ -113,10 +139,66 @@ export function FloatingChatbot() {
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
+  const [currentLocation, setCurrentLocation] = useState<ChatLocation | null>(null);
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
   const speechModule = getSpeechModule();
   const voiceAvailable = !!speechModule;
 
   const disabledSend = !draft.trim() || loading;
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = Keyboard.addListener(showEvent, (event) => {
+      const target = Math.max(0, (event.endCoordinates?.height ?? 0) - 12);
+      Animated.timing(keyboardOffset, {
+        toValue: target,
+        duration: event.duration ?? 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    });
+
+    const onHide = Keyboard.addListener(hideEvent, (event) => {
+      Animated.timing(keyboardOffset, {
+        toValue: 0,
+        duration: event.duration ?? 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    });
+
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, [keyboardOffset]);
+
+  const resolveLocation = useCallback(async (): Promise<ChatLocation | null> => {
+    if (currentLocation) {
+      return currentLocation;
+    }
+
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== 'granted') {
+        setError('Location permission is needed for nearest-stadium results.');
+        return null;
+      }
+
+      const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const next = {
+        latitude: current.coords.latitude,
+        longitude: current.coords.longitude,
+      };
+      setCurrentLocation(next);
+      return next;
+    } catch {
+      setError('Unable to read your location right now. You can still ask text-based queries.');
+      return null;
+    }
+  }, [currentLocation]);
 
   const sendMessage = useCallback(
     async (text: string, inputMode: 'text' | 'voice') => {
@@ -143,6 +225,11 @@ export function FloatingChatbot() {
       setError(null);
 
       try {
+        let locationPayload: ChatLocation | null = currentLocation;
+        if (queryNeedsLocation(value)) {
+          locationPayload = await resolveLocation();
+        }
+
         const response = await fetch(`${base}/api/chat`, {
           method: 'POST',
           headers: {
@@ -152,6 +239,7 @@ export function FloatingChatbot() {
             message: value,
             inputMode,
             language: 'auto',
+            ...(locationPayload ? { location: locationPayload } : {}),
           }),
         });
 
@@ -166,6 +254,7 @@ export function FloatingChatbot() {
           role: 'assistant',
           text: payload.reply || 'No response available.',
           links: payload.links || [],
+          structured: payload.structured || [],
           action: payload.action,
         };
 
@@ -176,7 +265,7 @@ export function FloatingChatbot() {
         setLoading(false);
       }
     },
-    [loading]
+    [currentLocation, loading, resolveLocation]
   );
 
   const handleToggleVoice = useCallback(async () => {
@@ -215,8 +304,11 @@ export function FloatingChatbot() {
       {open && <Pressable style={styles.backdrop} onPress={() => setOpen(false)} />}
 
       {open ? (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.panelWrap}>
-          <View style={styles.panel}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 18 : 8}
+          style={styles.panelWrap}>
+          <Animated.View style={[styles.panel, { transform: [{ translateY: Animated.multiply(keyboardOffset, -1) }] }]}>
             <View style={styles.headerRow}>
               <View>
                 <Text style={styles.headerTitle}>InStadium Assistant</Text>
@@ -227,7 +319,11 @@ export function FloatingChatbot() {
               </Pressable>
             </View>
 
-            <ScrollView style={styles.messagesArea} contentContainerStyle={styles.messagesContent}>
+            <ScrollView
+              style={styles.messagesArea}
+              contentContainerStyle={styles.messagesContent}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}>
               {lastThreeMessages.map((msg) => (
                 <View key={msg.id} style={[styles.bubble, msg.role === 'user' ? styles.userBubble : styles.assistantBubble]}>
                   <Text style={msg.role === 'user' ? styles.userText : styles.assistantText}>{msg.text}</Text>
@@ -238,14 +334,34 @@ export function FloatingChatbot() {
                         <Pressable
                           key={`${msg.id}-${link.entityType}-${link.id}`}
                           style={styles.linkCard}
-                          onPress={() => {
+                          onPress={async () => {
                             setOpen(false);
+                            if (/^https?:\/\//i.test(link.route)) {
+                              await Linking.openURL(link.route);
+                              return;
+                            }
+
                             router.push(link.route as never);
                           }}>
                           <Text style={styles.linkTitle}>{link.label}</Text>
                           {!!link.subtitle && <Text style={styles.linkSub}>{link.subtitle}</Text>}
-                          <Text style={styles.linkPath}>Open page</Text>
+                          <Text style={styles.linkPath}>{/^https?:\/\//i.test(link.route) ? 'Open reference' : 'Open page'}</Text>
                         </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+
+                  {msg.structured?.length ? (
+                    <View style={styles.structuredWrap}>
+                      {msg.structured.map((section, sectionIndex) => (
+                        <View key={`${msg.id}-section-${sectionIndex}`} style={styles.structuredCard}>
+                          <Text style={styles.structuredTitle}>{section.title}</Text>
+                          {section.items.map((item, itemIndex) => (
+                            <Text key={`${msg.id}-item-${sectionIndex}-${itemIndex}`} style={styles.structuredItem}>
+                              {`- ${item}`}
+                            </Text>
+                          ))}
+                        </View>
                       ))}
                     </View>
                   ) : null}
@@ -307,7 +423,7 @@ export function FloatingChatbot() {
                 <Ionicons name="send" size={18} color={landingColors.blush} />
               </Pressable>
             </View>
-          </View>
+          </Animated.View>
         </KeyboardAvoidingView>
       ) : (
         <Pressable style={styles.fab} onPress={() => setOpen(true)}>
@@ -428,6 +544,29 @@ const styles = StyleSheet.create({
   },
   linksWrap: {
     gap: 8,
+  },
+  structuredWrap: {
+    gap: 8,
+  },
+  structuredCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(129, 0, 0, 0.14)',
+    backgroundColor: 'rgba(129, 0, 0, 0.04)',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 3,
+  },
+  structuredTitle: {
+    color: landingColors.plum,
+    fontFamily: landingFonts.sansSemiBold,
+    fontSize: 12,
+  },
+  structuredItem: {
+    color: landingColors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontFamily: landingFonts.sansRegular,
   },
   linkCard: {
     borderRadius: 12,

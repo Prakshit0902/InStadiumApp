@@ -2,6 +2,7 @@ import './lib/load-env.js';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import http from 'node:http';
 import morgan from 'morgan';
 import authRouter from './routes/auth.js';
 import chatRouter from './routes/chat.js';
@@ -48,8 +49,28 @@ app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-const port = Number(process.env.PORT || 4000);
+const basePort = Number(process.env.PORT || 4000);
+const maxPortAttempts = 10;
 
-app.listen(port, () => {
-  console.log(`InStadium RN backend listening on http://localhost:${port}`);
-});
+function listenWithRetry(server: http.Server, port: number, attempt = 0): void {
+  server.listen(port);
+
+  server.once('listening', () => {
+    console.log(`InStadium RN backend listening on http://localhost:${port}`);
+  });
+
+  server.once('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE' && attempt < maxPortAttempts) {
+      const nextPort = port + 1;
+      console.warn(`Port ${port} is in use. Retrying on port ${nextPort}...`);
+      listenWithRetry(server, nextPort, attempt + 1);
+      return;
+    }
+
+    console.error('Failed to start server:', err.message);
+    process.exit(1);
+  });
+}
+
+const server = http.createServer(app);
+listenWithRetry(server, basePort);
