@@ -21,6 +21,7 @@ import {
   PlayfairDisplay_700Bold_Italic,
 } from '@expo-google-fonts/playfair-display';
 import { AuthProvider } from '@/providers/auth-provider';
+import { FloatingChatbot } from '@/components/chat/FloatingChatbot';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -53,7 +54,7 @@ export default function RootLayout() {
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <AuthProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack screenOptions={{ headerBackTitleVisible: false, headerBackButtonDisplayMode: 'minimal' }}>
+          <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="scan" options={{ title: 'Scan Stadium QR' }} />
             <Stack.Screen name="auth" options={{ title: 'Account' }} />
@@ -63,6 +64,7 @@ export default function RootLayout() {
             <Stack.Screen name="player/[id]" options={{ headerShown: true, title: 'Player' }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
+          <FloatingChatbot />
           <StatusBar style="auto" />
         </ThemeProvider>
       </AuthProvider>

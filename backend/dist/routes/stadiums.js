@@ -1,15 +1,41 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 const router = Router();
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
     try {
         const stadiums = await prisma.stadium.findMany({
+            where: q
+                ? {
+                    OR: [
+                        {
+                            name: {
+                                contains: q,
+                                mode: 'insensitive',
+                            },
+                        },
+                        {
+                            city: {
+                                contains: q,
+                                mode: 'insensitive',
+                            },
+                        },
+                        {
+                            state: {
+                                contains: q,
+                                mode: 'insensitive',
+                            },
+                        },
+                    ],
+                }
+                : undefined,
             include: {
                 sportsPlayed: true,
             },
             orderBy: {
                 capacity: 'desc',
             },
+            take: q ? 20 : undefined,
         });
         res.json(stadiums);
     }
