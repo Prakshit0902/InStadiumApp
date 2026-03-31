@@ -20,7 +20,13 @@ const app = express();
 
 const rawOrigins = process.env.CORS_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean);
 
-app.use(helmet());
+app.use(
+  helmet({
+    // QR dashboard runs on a separate origin and embeds /api/qr PNGs in <img> tags.
+    // Disable CORP so browser does not block cross-origin image rendering.
+    crossOriginResourcePolicy: false,
+  })
+);
 app.use(
   cors({
     origin: rawOrigins && rawOrigins.length > 0 ? rawOrigins : true,
