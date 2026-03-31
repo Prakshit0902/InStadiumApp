@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getLocalStadiumImage } from '@/components/landing/data';
 import { landingColors, landingFonts } from '@/components/landing/theme';
 
@@ -91,12 +91,23 @@ const MemoLoadingGrid = memo(LoadingGrid);
 
 export default function ExploreScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ q?: string; sport?: string }>();
   const [stadiums, setStadiums] = useState<ApiStadium[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [selectedSport, setSelectedSport] = useState('All');
+
+  useEffect(() => {
+    if (typeof params.q === 'string') {
+      setQuery(params.q);
+    }
+
+    if (typeof params.sport === 'string' && params.sport.trim().length > 0) {
+      setSelectedSport(params.sport);
+    }
+  }, [params.q, params.sport]);
 
   const fetchStadiums = useCallback(async () => {
     const baseUrl = getApiBaseUrl();

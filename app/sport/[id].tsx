@@ -162,7 +162,7 @@ export default function SportDetailScreen() {
   }, [metadata.name, players]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <Stack.Screen options={{ title: metadata.name, headerTintColor: landingColors.plum }} />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

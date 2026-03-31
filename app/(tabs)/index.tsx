@@ -25,6 +25,93 @@ export default function HomeScreen() {
   const { featured, nearby, sports } = useFeaturedStadiums();
   const sections = useMemo<LandingSectionKey[]>(() => ['sports', 'divider', 'featured', 'nearby', 'footer'], []);
 
+  const openExplore = useCallback((params?: Record<string, string>) => {
+    router.push({ pathname: '/explore', params: params || {} });
+  }, [router]);
+
+  const handleNavbarTabPress = useCallback(
+    (tab: 'Stadiums' | 'Sports' | 'About' | 'Find Stadium') => {
+      if (tab === 'Stadiums') {
+        openExplore();
+        return;
+      }
+
+      if (tab === 'Sports') {
+        router.push('/sports');
+        return;
+      }
+
+      if (tab === 'About') {
+        router.push('/modal');
+        return;
+      }
+
+      openExplore({ q: '', sport: 'All' });
+    },
+    [openExplore, router]
+  );
+
+  const handleChipPress = useCallback(
+    (chip: 'Near me' | 'Live events' | 'Top rated' | 'Family friendly') => {
+      if (chip === 'Near me') {
+        openExplore({ q: 'Mumbai' });
+        return;
+      }
+
+      if (chip === 'Top rated') {
+        openExplore({ q: 'Stadium' });
+        return;
+      }
+
+      if (chip === 'Live events') {
+        router.push('/sports');
+        return;
+      }
+
+      openExplore({ q: 'India' });
+    },
+    [openExplore, router]
+  );
+
+  const handleHeroPillPress = useCallback(
+    (pill: 'Live Events' | 'Nearby' | 'Top Rated') => {
+      if (pill === 'Live Events') {
+        router.push('/sports');
+        return;
+      }
+
+      if (pill === 'Nearby') {
+        openExplore({ q: 'Mumbai' });
+        return;
+      }
+
+      openExplore({ q: 'Stadium' });
+    },
+    [openExplore, router]
+  );
+
+  const handleFooterLinkPress = useCallback(
+    (link: 'Stadiums' | 'Our Story' | 'Sports Directory' | 'Find Stadium') => {
+      if (link === 'Stadiums') {
+        router.push('/explore');
+        return;
+      }
+
+      if (link === 'Our Story') {
+        router.push('/about-studio');
+        return;
+      }
+
+      if (link === 'Sports Directory') {
+        router.push('/sports');
+        return;
+      }
+
+      router.push('/explore');
+    },
+    [router]
+  );
+
   const renderSection = useCallback(
     ({ item }: ListRenderItemInfo<LandingSectionKey>) => {
       switch (item) {
@@ -50,12 +137,18 @@ export default function HomeScreen() {
             />
           );
         case 'footer':
-          return <LandingFooter horizontalPadding={sidePadding} />;
+          return (
+            <LandingFooter
+              horizontalPadding={sidePadding}
+              onPrimaryActionPress={() => router.push('/inquiries')}
+              onLinkPress={handleFooterLinkPress}
+            />
+          );
         default:
           return null;
       }
     },
-    [featured, nearby, router, sidePadding, sports]
+    [featured, handleFooterLinkPress, nearby, router, sidePadding, sports]
   );
 
   const renderHeader = useCallback(
@@ -64,14 +157,28 @@ export default function HomeScreen() {
         <LandingNavbar
           horizontalPadding={sidePadding}
           onScanPress={() => router.push('/scan')}
+          onSearchPress={() => openExplore()}
+          onNotificationsPress={() => router.push('/modal')}
+          onTabPress={handleNavbarTabPress}
           onProfilePress={() => router.push('/auth')}
           isAuthenticated={isAuthenticated}
         />
-        <NativeSearchStrip horizontalPadding={sidePadding} />
-        <HeroSection horizontalPadding={sidePadding} isTablet={isTablet} onExplorePress={() => router.push('/explore')} />
+        <NativeSearchStrip
+          horizontalPadding={sidePadding}
+          onSearchPress={() => openExplore()}
+          onFilterPress={() => openExplore({ sport: 'All' })}
+          onChipPress={handleChipPress}
+        />
+        <HeroSection
+          horizontalPadding={sidePadding}
+          isTablet={isTablet}
+          onExplorePress={() => openExplore()}
+          onQuickTourPress={() => router.push('/sports')}
+          onQuickPillPress={handleHeroPillPress}
+        />
       </View>
     ),
-    [isAuthenticated, isTablet, router, sidePadding]
+    [handleChipPress, handleHeroPillPress, handleNavbarTabPress, isAuthenticated, isTablet, openExplore, router, sidePadding]
   );
 
   return (

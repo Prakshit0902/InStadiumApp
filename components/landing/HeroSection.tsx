@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { landingColors, landingFonts } from './theme';
@@ -8,9 +8,11 @@ type Props = {
   horizontalPadding: number;
   isTablet: boolean;
   onExplorePress: () => void;
+  onQuickTourPress?: () => void;
+  onQuickPillPress?: (pill: 'Live Events' | 'Nearby' | 'Top Rated') => void;
 };
 
-function HeroSectionBase({ horizontalPadding, isTablet, onExplorePress }: Props) {
+function HeroSectionBase({ horizontalPadding, isTablet, onExplorePress, onQuickTourPress, onQuickPillPress }: Props) {
   const quickPills = ['Live Events', 'Nearby', 'Top Rated'];
 
   return (
@@ -39,7 +41,7 @@ function HeroSectionBase({ horizontalPadding, isTablet, onExplorePress }: Props)
             {quickPills.map((pill) => (
               <Pressable
                 key={pill}
-                onPress={() => Alert.alert('Coming Soon', `${pill} module will be wired in the next phase.`)}
+                onPress={() => onQuickPillPress?.(pill as 'Live Events' | 'Nearby' | 'Top Rated')}
                 android_ripple={{ color: 'rgba(238, 235, 221, 0.24)' }}
                 style={({ pressed }) => [styles.quickPill, pressed && styles.ctaPressed]}>
                 <Text style={styles.quickPillText}>{pill}</Text>
@@ -58,7 +60,7 @@ function HeroSectionBase({ horizontalPadding, isTablet, onExplorePress }: Props)
             </Pressable>
 
             <Pressable
-              onPress={() => Alert.alert('Coming Soon', 'Quick tour will be connected in the next phase.')}
+              onPress={onQuickTourPress || onExplorePress}
               android_ripple={{ color: 'rgba(238, 235, 221, 0.22)' }}
               hitSlop={6}
               style={({ pressed }) => [styles.secondaryButton, pressed && styles.ctaPressed]}>

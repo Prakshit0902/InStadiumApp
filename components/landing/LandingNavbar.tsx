@@ -6,11 +6,14 @@ import { landingColors, landingFonts } from './theme';
 type Props = {
   horizontalPadding: number;
   onScanPress?: () => void;
+  onSearchPress?: () => void;
+  onNotificationsPress?: () => void;
+  onTabPress?: (tab: 'Stadiums' | 'Sports' | 'About' | 'Find Stadium') => void;
   onProfilePress?: () => void;
   isAuthenticated?: boolean;
 };
 
-function LandingNavbarBase({ horizontalPadding, onScanPress, onProfilePress, isAuthenticated }: Props) {
+function LandingNavbarBase({ horizontalPadding, onScanPress, onSearchPress, onNotificationsPress, onTabPress, onProfilePress, isAuthenticated }: Props) {
   const quickTabs = ['Stadiums', 'Sports', 'About', 'Find Stadium'];
 
   return (
@@ -40,7 +43,7 @@ function LandingNavbarBase({ horizontalPadding, onScanPress, onProfilePress, isA
           </Pressable>
 
           <Pressable
-            onPress={() => Alert.alert('Coming Soon', 'Search screen is in the next migration phase.')}
+            onPress={onSearchPress || (() => Alert.alert('Search', 'Opening explore search.'))}
             android_ripple={{ color: 'rgba(129, 0, 0, 0.12)', borderless: true }}
             hitSlop={8}
             style={({ pressed }) => [styles.iconButton, pressed && styles.iconPressed]}>
@@ -48,7 +51,7 @@ function LandingNavbarBase({ horizontalPadding, onScanPress, onProfilePress, isA
           </Pressable>
 
           <Pressable
-            onPress={() => Alert.alert('Coming Soon', 'Notifications will be wired in the next phase.')}
+            onPress={onNotificationsPress || (() => Alert.alert('Notifications', 'No new notifications right now.'))}
             android_ripple={{ color: 'rgba(129, 0, 0, 0.12)', borderless: true }}
             hitSlop={8}
             style={({ pressed }) => [styles.iconButton, pressed && styles.iconPressed]}>
@@ -74,7 +77,7 @@ function LandingNavbarBase({ horizontalPadding, onScanPress, onProfilePress, isA
         {quickTabs.map((label, index) => (
           <Pressable
             key={label}
-            onPress={() => Alert.alert('Coming Soon', `${label} screen is next migration phase.`)}
+            onPress={() => onTabPress?.(label)}
             android_ripple={{ color: 'rgba(129, 0, 0, 0.12)', borderless: false }}
             hitSlop={5}
             style={({ pressed }) => [styles.tabChip, index === 0 && styles.tabChipActive, pressed && styles.linkPressed]}>
