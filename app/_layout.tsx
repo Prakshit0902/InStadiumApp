@@ -100,7 +100,6 @@ export default function RootLayout() {
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <AuthProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
           <Stack
             screenOptions={{
               headerBackTitleVisible: false,

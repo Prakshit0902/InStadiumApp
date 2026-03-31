@@ -95,11 +95,11 @@ type RuntimeSpeechModule = {
 
 function getSpeechModule(): RuntimeSpeechModule | null {
   try {
-    const mod = require('expo-speech-recognition') as {
-      ExpoSpeechRecognitionModule?: RuntimeSpeechModule;
+    const core = require('expo-modules-core') as {
+      requireOptionalNativeModule?: (name: string) => RuntimeSpeechModule | null;
     };
 
-    return mod.ExpoSpeechRecognitionModule ?? null;
+    return core.requireOptionalNativeModule?.('ExpoSpeechRecognition') ?? null;
   } catch {
     return null;
   }
@@ -181,7 +181,7 @@ export function FloatingChatbot() {
 
   const handleToggleVoice = useCallback(async () => {
     if (!speechModule) {
-      setError('Voice module is unavailable in this build. Rebuild dev client and relaunch app.');
+      setError('Voice module is unavailable in this build. Use a dev build with expo-speech-recognition configured.');
       return;
     }
 
