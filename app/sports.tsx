@@ -113,7 +113,7 @@ export default function SportsScreen() {
   const selectedSportRank = SPORT_NAMES.indexOf(selectedSportName) + 1;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <Stack.Screen options={{ title: 'Sports', headerTintColor: landingColors.plum }} />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

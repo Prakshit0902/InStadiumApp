@@ -5,25 +5,30 @@ import { landingColors, landingFonts } from './theme';
 
 type Props = {
   horizontalPadding: number;
+  onSearchPress?: () => void;
+  onFilterPress?: () => void;
+  onChipPress?: (chip: 'Near me' | 'Live events' | 'Top rated' | 'Family friendly') => void;
 };
 
-function NativeSearchStripBase({ horizontalPadding }: Props) {
+function NativeSearchStripBase({ horizontalPadding, onSearchPress, onFilterPress, onChipPress }: Props) {
   return (
     <View style={[styles.section, { paddingHorizontal: horizontalPadding }]}> 
       <Pressable
-        onPress={() => Alert.alert('Coming Soon', 'Search flow will be connected in the next phase.')}
+        onPress={onSearchPress || (() => Alert.alert('Search', 'Opening explore search.'))}
         android_ripple={{ color: 'rgba(129, 0, 0, 0.10)' }}
         style={({ pressed }) => [styles.searchField, pressed && styles.pressed]}>
         <Ionicons name="search" size={18} color={landingColors.subtle} />
         <Text style={styles.searchText}>Search stadiums, cities, or sports</Text>
-        <Ionicons name="options-outline" size={16} color={landingColors.subtle} style={styles.filterIcon} />
+        <Pressable hitSlop={8} onPress={onFilterPress || onSearchPress}>
+          <Ionicons name="options-outline" size={16} color={landingColors.subtle} style={styles.filterIcon} />
+        </Pressable>
       </Pressable>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsWrap}>
         {['Near me', 'Live events', 'Top rated', 'Family friendly'].map((chip) => (
           <Pressable
             key={chip}
-            onPress={() => Alert.alert('Coming Soon', `${chip} filter will be connected in the next phase.`)}
+            onPress={() => onChipPress?.(chip as 'Near me' | 'Live events' | 'Top rated' | 'Family friendly')}
             android_ripple={{ color: 'rgba(129, 0, 0, 0.10)' }}
             style={({ pressed }) => [styles.chip, pressed && styles.pressed]}>
             <Text style={styles.chipText}>{chip}</Text>

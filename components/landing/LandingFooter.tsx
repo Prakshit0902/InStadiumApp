@@ -4,23 +4,30 @@ import { landingColors, landingFonts } from './theme';
 
 type Props = {
   horizontalPadding: number;
+  onPrimaryActionPress?: () => void;
+  onLinkPress?: (link: 'Stadiums' | 'Our Story' | 'Sports Directory' | 'Find Stadium') => void;
 };
 
-function LandingFooterBase({ horizontalPadding }: Props) {
-  const links = ['Portfolio', 'About the Studio', 'Press and Media', 'Inquiries'];
+function LandingFooterBase({ horizontalPadding, onPrimaryActionPress, onLinkPress }: Props) {
+  const links: ('Stadiums' | 'Our Story' | 'Sports Directory' | 'Find Stadium')[] = [
+    'Stadiums',
+    'Our Story',
+    'Sports Directory',
+    'Find Stadium',
+  ];
 
   return (
     <View style={[styles.section, { paddingHorizontal: horizontalPadding }]}> 
       <View style={styles.ctaPanel}>
         <Text style={styles.title}>
-          Inquire about your next <Text style={styles.titleAccent}>extraordinary</Text> event.
+          Plan your next <Text style={styles.titleAccent}>stadium</Text> experience.
         </Text>
 
         <Pressable
           style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-          onPress={() => Alert.alert('Inquiry', 'Inquiry form migration will be handled in the next phase.')}
+          onPress={onPrimaryActionPress || (() => Alert.alert('Stadium Inquiry', 'Opening stadium inquiries page.'))}
           android_ripple={{ color: 'rgba(238, 235, 221, 0.20)' }}>
-          <Text style={styles.buttonText}>Start the process</Text>
+          <Text style={styles.buttonText}>Plan Visit</Text>
         </Pressable>
       </View>
 
@@ -28,7 +35,7 @@ function LandingFooterBase({ horizontalPadding }: Props) {
         {links.map((label) => (
           <Pressable
             key={label}
-            onPress={() => Alert.alert('Coming Soon', `${label} page will be wired in the next phase.`)}
+            onPress={() => onLinkPress?.(label)}
             android_ripple={{ color: 'rgba(129, 0, 0, 0.10)' }}
             style={({ pressed }) => [styles.linkRow, pressed && styles.linkPressed]}>
             <Text style={styles.link}>{label}</Text>

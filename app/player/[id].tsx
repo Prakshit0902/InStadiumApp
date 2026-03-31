@@ -169,7 +169,7 @@ export default function PlayerDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
         <View style={styles.centerState}>
           <ActivityIndicator size="large" color={landingColors.rose} />
           <Text style={styles.stateText}>Loading player profile...</Text>
@@ -180,7 +180,7 @@ export default function PlayerDetailScreen() {
 
   if (error || !player) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
         <Stack.Screen options={{ title: 'Player', headerShown: true }} />
         <View style={styles.centerState}>
           <Ionicons name="alert-circle-outline" size={26} color={landingColors.rose} />
@@ -198,7 +198,7 @@ export default function PlayerDetailScreen() {
   const playerImage = player.image || params.image;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <Stack.Screen options={{ title: player.name, headerShown: true, headerTintColor: landingColors.blush, headerStyle: { backgroundColor: landingColors.plum } }} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.heroSection}>

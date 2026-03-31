@@ -34,7 +34,7 @@ export default function StadiumDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
         <View style={styles.centerState}>
           <ActivityIndicator size="large" color={landingColors.rose} />
           <Text style={styles.stateText}>Loading stadium details...</Text>
@@ -45,7 +45,7 @@ export default function StadiumDetailScreen() {
 
   if (error || !stadium) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
         <Stack.Screen options={{ title: 'Stadium', headerShown: true }} />
         <View style={styles.centerState}>
           <Ionicons name="alert-circle-outline" size={26} color={landingColors.rose} />
@@ -62,7 +62,7 @@ export default function StadiumDetailScreen() {
   const heroImage = getLocalStadiumImage(firstGalleryUrl(stadium.galleryImages));
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
       <Stack.Screen options={{ title: stadium.name, headerShown: true, headerTintColor: landingColors.plum }} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <StadiumHeroSection
