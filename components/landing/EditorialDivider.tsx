@@ -47,10 +47,10 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 30,
     fontFamily: landingFonts.serifRegular,
+    fontWeight: '300',
   },
   emphasis: {
-    fontFamily: landingFonts.serifMedium,
+    fontFamily: landingFonts.serifMediumItalic,
     color: landingColors.plum,
-    fontStyle: 'italic',
   },
 });

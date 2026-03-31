@@ -46,12 +46,32 @@ export const stadiumDetailStyles = StyleSheet.create({
   },
   overviewSection: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 14,
+    marginTop: 8,
   },
   overviewText: {
     color: landingColors.muted,
     fontSize: 13,
     lineHeight: 21,
     fontFamily: landingFonts.sansRegular,
+  },
+  sectionGap: {
+    marginTop: 10,
+  },
+  footerSection: {
+    marginTop: 14,
+    marginHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(129, 0, 0, 0.22)',
+    alignItems: 'center',
+  },
+  footerMeta: {
+    color: landingColors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    fontSize: 9,
+    fontFamily: landingFonts.sansMedium,
   },
 });

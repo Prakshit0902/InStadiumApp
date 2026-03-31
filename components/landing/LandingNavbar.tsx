@@ -17,9 +17,13 @@ function LandingNavbarBase({ horizontalPadding, onScanPress, onProfilePress, isA
     <View style={styles.wrapper}>
       <View style={[styles.container, { paddingHorizontal: horizontalPadding }]}> 
         <View style={styles.brandWrap}>
-          <Text style={styles.logoText}>
-            <Text style={styles.logoBadge}>In</Text>stadium
-          </Text>
+          <View style={styles.logoRow}>
+            <View style={styles.logoBadge}>
+              <Text style={styles.logoBadgeText}>IN</Text>
+            </View>
+            <Text style={styles.logoWordmark}>STADIUM</Text>
+          </View>
+
           <View style={styles.locationWrap}>
             <Ionicons name="location-outline" size={12} color={landingColors.subtle} />
             <Text style={styles.locationText}>India</Text>
@@ -103,21 +107,34 @@ const styles = StyleSheet.create({
   brandWrap: {
     gap: 3,
   },
-  logoText: {
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logoWordmark: {
     color: landingColors.plum,
     fontSize: 20,
-    letterSpacing: 0.8,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
     fontFamily: landingFonts.sansSemiBold,
   },
   logoBadge: {
+    minWidth: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: landingColors.rose,
-    color: landingColors.blush,
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingVertical: 3,
+    borderRadius: 5,
     overflow: 'hidden',
-    fontStyle: 'italic',
-    fontFamily: landingFonts.sansSemiBold,
+  },
+  logoBadgeText: {
+    color: landingColors.blush,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    fontSize: 18,
+    fontFamily: landingFonts.sansSemiBoldItalic,
   },
   locationWrap: {
     flexDirection: 'row',

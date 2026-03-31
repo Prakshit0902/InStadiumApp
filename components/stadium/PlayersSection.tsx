@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { getLocalStadiumImage } from '@/components/landing/data';
 import { landingColors, landingFonts } from '@/components/landing/theme';
@@ -12,6 +13,8 @@ type Props = {
 };
 
 export function PlayersSection({ players, fallbackSport }: Props) {
+  const router = useRouter();
+
   if (players.length === 0) {
     return null;
   }
@@ -22,7 +25,21 @@ export function PlayersSection({ players, fallbackSport }: Props) {
         <SectionHeader kicker="Players" title="Iconic Figures" light />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.playerList}>
           {players.map((player) => (
-            <View key={player.id} style={styles.playerCard}>
+            <Pressable
+              key={player.id}
+              style={({ pressed }) => [styles.playerCard, pressed && styles.playerCardPressed]}
+              onPress={() =>
+                router.push({
+                  pathname: '/player/[id]',
+                  params: {
+                    id: player.id,
+                    name: player.name,
+                    image: player.image || '',
+                    sport: player.sport?.name || fallbackSport || '',
+                    country: player.country || '',
+                  },
+                })
+              }>
               <Image
                 source={player.image ? getLocalStadiumImage(player.image) : getLocalStadiumImage(undefined)}
                 style={styles.playerImage}
@@ -30,7 +47,7 @@ export function PlayersSection({ players, fallbackSport }: Props) {
               />
               <Text style={styles.playerName}>{player.name}</Text>
               <Text style={styles.playerRole}>{player.sport?.name || fallbackSport || 'Player'}</Text>
-            </View>
+            </Pressable>
           ))}
         </ScrollView>
       </View>
@@ -41,10 +58,13 @@ export function PlayersSection({ players, fallbackSport }: Props) {
 const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 14,
+    marginTop: 10,
   },
   darkSection: {
     backgroundColor: landingColors.plum,
+    marginHorizontal: 20,
+    borderRadius: 20,
     paddingTop: 18,
     paddingBottom: 16,
   },
@@ -55,6 +75,10 @@ const styles = StyleSheet.create({
   },
   playerCard: {
     width: 182,
+  },
+  playerCardPressed: {
+    transform: [{ scale: 0.985 }],
+    opacity: 0.92,
   },
   playerImage: {
     width: '100%',

@@ -51,7 +51,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingTop: 18,
     paddingBottom: 16,
-    marginTop: 8,
+    marginTop: 10,
+    marginBottom: 8,
     overflow: 'hidden',
   },
   track: {

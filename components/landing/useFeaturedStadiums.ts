@@ -7,18 +7,54 @@ import {
 } from './data';
 import { ApiSportResponse, ApiStadium, NearbyStadium, SportItem, Stadium } from './types';
 
+function toSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function getFirstGalleryImage(galleryImages: unknown): string | undefined {
+  if (!Array.isArray(galleryImages)) {
+    return undefined;
+  }
+
+  for (const item of galleryImages) {
+    if (typeof item === 'string' && item.trim()) {
+      return item;
+    }
+
+    if (item && typeof item === 'object' && 'url' in item) {
+      const url = (item as { url?: unknown }).url;
+      if (typeof url === 'string' && url.trim()) {
+        return url;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function toSafeId(stadium: ApiStadium) {
+  const raw = stadium.id ? String(stadium.id).trim() : '';
+  if (raw) {
+    return raw;
+  }
+
+  return toSlug(stadium.name || 'stadium');
+}
+
 function getApiBaseUrl() {
   const base = process.env.EXPO_PUBLIC_API_BASE_URL;
   return base ? base.replace(/\/$/, '') : null;
 }
 
 function toLandingStadium(stadium: ApiStadium): Stadium {
-  const primaryImage = Array.isArray(stadium.galleryImages)
-    ? stadium.galleryImages.find((img) => typeof img?.url === 'string' && img.url)?.url
-    : undefined;
+  const primaryImage = getFirstGalleryImage(stadium.galleryImages);
 
   return {
-    id: stadium.id,
+    id: toSafeId(stadium),
     name: stadium.name,
     city: stadium.city,
     capacity: stadium.capacity,
@@ -29,14 +65,10 @@ function toLandingStadium(stadium: ApiStadium): Stadium {
 
 function toNearby(stadium: ApiStadium, index: number): NearbyStadium {
   const defaultDistances = ['12.5 km', '4.2 km', '8.7 km', '15.3 km'];
-  const image =
-    (Array.isArray(stadium.galleryImages)
-      ? stadium.galleryImages.find((img) => typeof img?.url === 'string' && img.url)?.url
-      : undefined) ||
-    '';
+  const image = getFirstGalleryImage(stadium.galleryImages) || '';
 
   return {
-    id: stadium.id,
+    id: toSafeId(stadium),
     name: stadium.name,
     city: stadium.city,
     distance: defaultDistances[index] || `${10 + index}.0 km`,

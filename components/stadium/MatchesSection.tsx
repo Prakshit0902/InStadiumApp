@@ -8,18 +8,31 @@ import { formatDate } from './utils';
 
 type Props = {
   matches: MatchItem[];
+  stadiumName: string;
+  city?: string;
 };
 
-export function MatchesSection({ matches }: Props) {
-  if (matches.length === 0) {
-    return null;
+function withFallbackMatches(matches: MatchItem[], stadiumName: string, city?: string): MatchItem[] {
+  if (matches.length > 0) {
+    return matches;
   }
+
+  const place = city ? `${stadiumName}, ${city}` : stadiumName;
+  return [
+    { teams: 'India XI vs Rest of World XI', date: '2026-06-14', tournament: `InStadium Prime Night • ${place}` },
+    { teams: 'Legends All Stars vs National Select', date: '2026-07-02', tournament: `Champions Cup • ${place}` },
+    { teams: 'City Rivals Derby', date: '2026-07-19', tournament: `Weekend Derby • ${place}` },
+  ];
+}
+
+export function MatchesSection({ matches, stadiumName, city }: Props) {
+  const materializedMatches = withFallbackMatches(matches, stadiumName, city);
 
   return (
     <AnimatedReveal delay={150}>
       <View style={styles.section}>
         <SectionHeader kicker="Matches" title="Upcoming Spectacles" />
-        {matches.map((match, index) => (
+        {materializedMatches.map((match, index) => (
           <Pressable key={`${match.teams || index}-${index}`} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
             <View style={styles.dateBadge}>
               <Text style={styles.dateDay}>{formatDate(match.date).split(' ')[0]}</Text>
@@ -28,6 +41,14 @@ export function MatchesSection({ matches }: Props) {
             <View style={styles.contentWrap}>
               <Text style={styles.tournament}>{match.tournament || 'Featured Match'}</Text>
               <Text style={styles.teams}>{match.teams || 'Teams to be announced'}</Text>
+              <View style={styles.metaLine}>
+                <Ionicons name="location-outline" size={13} color={landingColors.subtle} />
+                <Text style={styles.metaText}>{city ? `${stadiumName}, ${city}` : stadiumName}</Text>
+              </View>
+              <View style={styles.metaLine}>
+                <Ionicons name="time-outline" size={13} color={landingColors.subtle} />
+                <Text style={styles.metaText}>Gates open 2 hours before kickoff</Text>
+              </View>
               <View style={styles.ticketRow}>
                 <Ionicons name="ticket-outline" size={13} color={landingColors.rose} />
                 <Text style={styles.ticketText}>Reserve Seat</Text>
@@ -43,7 +64,8 @@ export function MatchesSection({ matches }: Props) {
 const styles = StyleSheet.create({
   section: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 14,
+    marginTop: 8,
   },
   card: {
     borderRadius: 18,
@@ -95,13 +117,26 @@ const styles = StyleSheet.create({
     color: landingColors.plum,
     fontSize: 19,
     lineHeight: 24,
-    marginBottom: 8,
+    marginBottom: 10,
     fontFamily: landingFonts.serifRegular,
+  },
+  metaLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 5,
+  },
+  metaText: {
+    color: landingColors.muted,
+    fontSize: 10,
+    letterSpacing: 0.2,
+    fontFamily: landingFonts.sansMedium,
   },
   ticketRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+    marginTop: 4,
   },
   ticketText: {
     color: landingColors.rose,

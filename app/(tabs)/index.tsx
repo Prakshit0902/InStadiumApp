@@ -38,7 +38,7 @@ export default function HomeScreen() {
               horizontalPadding={sidePadding}
               featured={featured}
               onViewAllPress={() => router.push('/explore')}
-              onStadiumPress={(stadiumId) => router.push(`/stadium/${stadiumId}`)}
+              onStadiumPress={(stadiumId) => router.push(`/stadium/${encodeURIComponent(stadiumId)}`)}
             />
           );
         case 'nearby':
@@ -46,7 +46,7 @@ export default function HomeScreen() {
             <NearbyStadiums
               horizontalPadding={sidePadding}
               nearbyData={nearby}
-              onStadiumPress={(stadiumId) => router.push(`/stadium/${stadiumId}`)}
+              onStadiumPress={(stadiumId) => router.push(`/stadium/${encodeURIComponent(stadiumId)}`)}
             />
           );
         case 'footer':

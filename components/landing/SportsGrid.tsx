@@ -1,7 +1,9 @@
 import { memo } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { sports } from './data';
+import { toSportSlug } from './sports-page-data';
 import { SportItem } from './types';
 import { landingColors, landingFonts } from './theme';
 
@@ -11,6 +13,7 @@ type Props = {
 };
 
 function SportsGridBase({ horizontalPadding, sportsData = sports }: Props) {
+  const router = useRouter();
   const cardWidth = 132;
 
   const getItemLayout = (_: ArrayLike<SportItem> | null | undefined, index: number) => ({
@@ -42,7 +45,7 @@ function SportsGridBase({ horizontalPadding, sportsData = sports }: Props) {
         renderItem={({ item }) => (
           <Pressable
             style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-            onPress={() => Alert.alert('Sport Route', `${item.name} screen will be wired in the next phase.`)}
+            onPress={() => router.push(`/sport/${toSportSlug(item.name)}`)}
             android_ripple={{ color: 'rgba(129, 0, 0, 0.12)' }}>
             <View style={styles.iconWrap}>
               <Image source={item.icon} style={styles.icon} contentFit="contain" cachePolicy="memory-disk" transition={0} />
@@ -77,6 +80,7 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     marginBottom: 12,
     fontFamily: landingFonts.serifMedium,
+    fontWeight: '500',
   },
   listContent: {
     gap: 10,

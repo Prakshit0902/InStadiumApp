@@ -64,10 +64,20 @@ export const fallbackFeaturedStadiums: Stadium[] = [
 
 const fallbackByPublicId: Record<string, number> = {
   wankhedestadium: require('@/assets/images/landing/stadiums/wankhedestadium.jpg'),
+  'stadiums/wankhedestadium': require('@/assets/images/landing/stadiums/wankhedestadium.jpg'),
+  'instadium/stadiums/wankhedestadium': require('@/assets/images/landing/stadiums/wankhedestadium.jpg'),
   narendramodistadium: require('@/assets/images/landing/stadiums/narendramodistadium.jpg'),
+  'stadiums/narendramodistadium': require('@/assets/images/landing/stadiums/narendramodistadium.jpg'),
+  'instadium/stadiums/narendramodistadium': require('@/assets/images/landing/stadiums/narendramodistadium.jpg'),
   saltlakestadium: require('@/assets/images/landing/stadiums/saltlakestadium.jpg'),
+  'stadiums/saltlakestadium': require('@/assets/images/landing/stadiums/saltlakestadium.jpg'),
+  'instadium/stadiums/saltlakestadium': require('@/assets/images/landing/stadiums/saltlakestadium.jpg'),
   dypatilstadium: require('@/assets/images/landing/stadiums/other/dypatilstadium.jpg'),
+  'stadiums/other/dypatilstadium': require('@/assets/images/landing/stadiums/other/dypatilstadium.jpg'),
+  'instadium/stadiums/other/dypatilstadium': require('@/assets/images/landing/stadiums/other/dypatilstadium.jpg'),
   chinnaswamystadium: require('@/assets/images/landing/stadiums/other/chinnaswamystadium.jpg'),
+  'stadiums/other/chinnaswamystadium': require('@/assets/images/landing/stadiums/other/chinnaswamystadium.jpg'),
+  'instadium/stadiums/other/chinnaswamystadium': require('@/assets/images/landing/stadiums/other/chinnaswamystadium.jpg'),
 };
 
 const fallbackDefaultImage = require('@/assets/images/landing/stadium.jpg');
@@ -132,6 +142,12 @@ export function getLocalStadiumImage(image?: string) {
   const mapped = fallbackByPublicId[publicId];
   if (mapped) {
     return mapped;
+  }
+
+  const basename = publicId.split('/').pop() || publicId;
+  const mappedByBasename = fallbackByPublicId[basename];
+  if (mappedByBasename) {
+    return mappedByBasename;
   }
 
   switch (image) {

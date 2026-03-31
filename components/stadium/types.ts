@@ -8,8 +8,13 @@ export type ApiSport = {
 export type ApiPlayer = {
   id: string;
   name: string;
+  country?: string;
   image?: string | null;
   bio?: string | null;
+  achievements?: unknown;
+  careerTimeline?: unknown;
+  stats?: unknown;
+  stadiumsPlayed?: ApiStadiumCard[];
   sport?: ApiSport;
 };
 

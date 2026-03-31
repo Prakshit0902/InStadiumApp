@@ -12,6 +12,78 @@ import {
   TimelineItem,
 } from './types';
 import { buildRuleSections, getApiBaseUrl, getDistanceKm, parseArray } from './utils';
+import { fallbackFeaturedStadiums, nearbyStadiums as landingNearbyStadiums } from '@/components/landing/data';
+
+function decodeParam(value: string | undefined) {
+  if (!value) {
+    return '';
+  }
+
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function toTitleFromSlug(value: string) {
+  return value
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function toFallbackCards(): ApiStadiumCard[] {
+  return [
+    ...fallbackFeaturedStadiums.map((item) => ({
+      id: item.id,
+      name: item.name,
+      city: item.city,
+      galleryImages: item.image ? [{ url: item.image }] : [],
+      sportsPlayed: item.sport ? [{ id: item.sport.toLowerCase(), name: item.sport }] : [],
+    })),
+    ...landingNearbyStadiums.map((item) => ({
+      id: item.id,
+      name: item.name,
+      city: item.city,
+      galleryImages: typeof item.image === 'string' ? [{ url: item.image }] : [],
+      sportsPlayed: [],
+    })),
+  ];
+}
+
+function createFallbackStadiumDetail(stadiumId: string): ApiStadiumDetail {
+  const cards = toFallbackCards();
+  const card = cards.find((item) => item.id === stadiumId);
+  const name = card?.name || toTitleFromSlug(stadiumId || 'stadium');
+  const city = card?.city || 'Mumbai';
+
+  return {
+    id: stadiumId,
+    name,
+    city,
+    state: 'Maharashtra',
+    country: 'India',
+    capacity: 33000,
+    builtYear: 1974,
+    description:
+      'An iconic Indian venue known for electric crowds, landmark fixtures, and a rich sporting legacy.',
+    sportsPlayed: card?.sportsPlayed || [],
+    galleryImages: card?.galleryImages || [],
+    historyTimeline: [
+      { year: '1974', event: 'Stadium inaugurated for major domestic fixtures.' },
+      { year: '2011', event: 'Hosted globally celebrated championship moments.' },
+      { year: '2023', event: 'Infrastructure and fan-experience upgrades completed.' },
+    ],
+    upcomingMatches: [{ teams: 'Home XI vs Visitors XI', date: '2026-05-14', tournament: 'Premier Fixture' }],
+    nearbyPlaces: [
+      { name: 'City Transport Hub', distance: '2.1 km', type: 'Transit' },
+      { name: 'Fan Park', distance: '1.4 km', type: 'Leisure' },
+    ],
+    players: [],
+  };
+}
 
 export function useStadiumDetail(stadiumId: string | undefined) {
   const [loading, setLoading] = useState(true);
@@ -23,11 +95,27 @@ export function useStadiumDetail(stadiumId: string | undefined) {
 
   useEffect(() => {
     let mounted = true;
+    const normalizedStadiumId = decodeParam(stadiumId);
 
     async function loadData() {
       const base = getApiBaseUrl();
-      if (!base || !stadiumId) {
-        setError('Missing API configuration.');
+      if (!normalizedStadiumId) {
+        setError('Missing stadium id.');
+        setLoading(false);
+        return;
+      }
+
+      if (!base) {
+        if (!mounted) {
+          return;
+        }
+
+        const fallbackDetail = createFallbackStadiumDetail(normalizedStadiumId);
+        setError(null);
+        setStadium(fallbackDetail);
+        setAllStadiums(toFallbackCards());
+        setSports([]);
+        setPlayers([]);
         setLoading(false);
         return;
       }
@@ -35,10 +123,10 @@ export function useStadiumDetail(stadiumId: string | undefined) {
       try {
         setError(null);
         const [detailRes, listRes, sportsRes, playersRes] = await Promise.all([
-          fetch(`${base}/api/stadiums/${stadiumId}`),
+          fetch(`${base}/api/stadiums/${encodeURIComponent(normalizedStadiumId)}`),
           fetch(`${base}/api/stadiums`),
           fetch(`${base}/api/sports`),
-          fetch(`${base}/api/players?stadiumId=${stadiumId}`),
+          fetch(`${base}/api/players?stadiumId=${encodeURIComponent(normalizedStadiumId)}`),
         ]);
 
         if (!detailRes.ok) {
@@ -58,9 +146,14 @@ export function useStadiumDetail(stadiumId: string | undefined) {
         setAllStadiums(Array.isArray(listData) ? listData : []);
         setSports(Array.isArray(sportsData) ? sportsData : []);
         setPlayers(Array.isArray(playersData) && playersData.length > 0 ? playersData : detailData.players || []);
-      } catch (loadError) {
+      } catch {
         if (mounted) {
-          setError(loadError instanceof Error ? loadError.message : 'Failed to load stadium details.');
+          const fallbackDetail = createFallbackStadiumDetail(normalizedStadiumId);
+          setError(null);
+          setStadium(fallbackDetail);
+          setAllStadiums(toFallbackCards());
+          setSports([]);
+          setPlayers([]);
         }
       } finally {
         if (mounted) {

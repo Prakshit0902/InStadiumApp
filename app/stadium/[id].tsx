@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,10 +8,8 @@ import { GallerySection } from '@/components/stadium/GallerySection';
 import { TimelineSection } from '@/components/stadium/TimelineSection';
 import { MatchesSection } from '@/components/stadium/MatchesSection';
 import { PlayersSection } from '@/components/stadium/PlayersSection';
-import { GlobalMapSection, LocationSection } from '@/components/stadium/MapsSection';
+import { LocationSection } from '@/components/stadium/MapsSection';
 import { NearbyStadiumsSection } from '@/components/stadium/NearbyStadiumsSection';
-import { RulebookSection } from '@/components/stadium/RulebookSection';
-import { NearbyPlacesSection } from '@/components/stadium/NearbyPlacesSection';
 import { useStadiumDetail } from '@/components/stadium/use-stadium-detail';
 import { firstGalleryUrl } from '@/components/stadium/utils';
 import { getLocalStadiumImage } from '@/components/landing/data';
@@ -22,7 +19,6 @@ import { stadiumDetailStyles as styles } from '@/components/stadium/StadiumDetai
 export default function StadiumDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [activeRuleIndex, setActiveRuleIndex] = useState(0);
 
   const {
     loading,
@@ -32,12 +28,8 @@ export default function StadiumDetailScreen() {
     gallery,
     timeline,
     matches,
-    nearbyPlaces,
-    stadiumSports,
     primarySport,
     nearbyStadiums,
-    globalMapList,
-    ruleSections,
   } = useStadiumDetail(id);
 
   if (loading) {
@@ -80,7 +72,7 @@ export default function StadiumDetailScreen() {
           state={stadium.state}
           capacity={stadium.capacity}
           builtYear={stadium.builtYear}
-          sportsLabel={stadiumSports.map((x) => x.name).join(', ')}
+          sportsLabel={stadium.sportsPlayed?.map((x) => x.name).join(', ') || ''}
         />
 
         {!!stadium.description && (
@@ -90,24 +82,33 @@ export default function StadiumDetailScreen() {
           </View>
         )}
 
-        <GallerySection gallery={gallery} />
-        <TimelineSection timeline={timeline} />
-        <MatchesSection matches={matches} />
-        <PlayersSection players={players} fallbackSport={primarySport?.name} />
-        <LocationSection name={stadium.name} latitude={stadium.latitude} longitude={stadium.longitude} />
-        <GlobalMapSection currentStadiumId={stadium.id} stadiums={globalMapList} />
-        <NearbyStadiumsSection stadiums={nearbyStadiums} />
+        <View style={styles.sectionGap}>
+          <GallerySection gallery={gallery} />
+        </View>
 
-        {primarySport && (
-          <RulebookSection
-            sportName={primarySport.name}
-            sections={ruleSections}
-            activeIndex={activeRuleIndex}
-            onSelect={setActiveRuleIndex}
-          />
-        )}
+        <View style={styles.sectionGap}>
+          <TimelineSection timeline={timeline} />
+        </View>
 
-        <NearbyPlacesSection places={nearbyPlaces} />
+        <View style={styles.sectionGap}>
+          <MatchesSection matches={matches} stadiumName={stadium.name} city={stadium.city} />
+        </View>
+
+        <View style={styles.sectionGap}>
+          <PlayersSection players={players} fallbackSport={primarySport?.name} />
+        </View>
+
+        <View style={styles.sectionGap}>
+          <LocationSection name={stadium.name} latitude={stadium.latitude} longitude={stadium.longitude} />
+        </View>
+
+        <View style={styles.sectionGap}>
+          <NearbyStadiumsSection stadiums={nearbyStadiums} />
+        </View>
+
+        <View style={styles.footerSection}>
+          <Text style={styles.footerMeta}>© 2026 Instadium</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

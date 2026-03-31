@@ -63,10 +63,10 @@ const styles = StyleSheet.create({
     lineHeight: 37,
     marginBottom: 14,
     fontFamily: landingFonts.serifRegular,
+    fontWeight: '300',
   },
   titleAccent: {
-    fontFamily: landingFonts.serifMedium,
-    fontStyle: 'italic',
+    fontFamily: landingFonts.serifMediumItalic,
   },
   button: {
     alignSelf: 'flex-start',

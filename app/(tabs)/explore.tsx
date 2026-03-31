@@ -41,10 +41,28 @@ function getApiBaseUrl() {
 
 function getPrimaryImage(stadium: ApiStadium) {
   const firstGalleryUrl = Array.isArray(stadium.galleryImages)
-    ? stadium.galleryImages.find((item) => typeof item?.url === 'string' && item.url)?.url
+    ? stadium.galleryImages.find((item) => {
+        if (typeof item === 'string') {
+          return item.trim().length > 0;
+        }
+
+        if (item && typeof item === 'object' && 'url' in item) {
+          const url = (item as { url?: unknown }).url;
+          return typeof url === 'string' && url.trim().length > 0;
+        }
+
+        return false;
+      })
     : undefined;
 
-  return getLocalStadiumImage(firstGalleryUrl);
+  const resolvedUrl =
+    typeof firstGalleryUrl === 'string'
+      ? firstGalleryUrl
+      : firstGalleryUrl && typeof firstGalleryUrl === 'object' && 'url' in firstGalleryUrl
+        ? ((firstGalleryUrl as { url?: unknown }).url as string | undefined)
+        : undefined;
+
+  return getLocalStadiumImage(resolvedUrl);
 }
 
 function formatCapacity(value?: number | null) {
@@ -216,7 +234,7 @@ export default function ExploreScreen() {
 
           return (
             <Pressable
-              onPress={() => router.push(`/stadium/${item.id}`)}
+              onPress={() => router.push(`/stadium/${encodeURIComponent(String(item.id))}`)}
               style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
               <Image source={getPrimaryImage(item)} style={styles.cardImage} contentFit="cover" transition={100} />
 

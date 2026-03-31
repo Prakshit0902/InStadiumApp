@@ -110,14 +110,15 @@ const styles = StyleSheet.create({
     lineHeight: 46,
     marginBottom: 12,
     fontFamily: landingFonts.serifRegular,
+    fontWeight: '300',
   },
   titleLarge: {
     fontSize: 50,
     lineHeight: 58,
   },
   titleAccent: {
-    fontFamily: landingFonts.serifMedium,
-    fontStyle: 'italic',
+    fontFamily: landingFonts.serifBoldItalic,
+    fontWeight: '700',
   },
   body: {
     color: 'rgba(238, 235, 221, 0.86)',

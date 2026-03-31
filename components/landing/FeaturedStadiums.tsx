@@ -115,10 +115,10 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 36,
     fontFamily: landingFonts.serifRegular,
+    fontWeight: '400',
   },
   titleAccent: {
-    fontFamily: landingFonts.serifMedium,
-    fontStyle: 'italic',
+    fontFamily: landingFonts.serifMediumItalic,
   },
   viewAllButton: {
     borderRadius: 999,

@@ -27,4 +27,26 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/:id', async (req, res) => {
+  try {
+    const player = await prisma.player.findUnique({
+      where: { id: req.params.id },
+      include: {
+        sport: true,
+        stadiumsPlayed: true,
+      },
+    });
+
+    if (!player) {
+      res.status(404).json({ error: 'Player not found' });
+      return;
+    }
+
+    res.json(player);
+  } catch (error) {
+    console.error('GET /api/players/:id failed:', error);
+    res.status(500).json({ error: 'Failed to fetch player' });
+  }
+});
+
 export default router;

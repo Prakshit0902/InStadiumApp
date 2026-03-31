@@ -9,11 +9,16 @@ import {
   Montserrat_400Regular,
   Montserrat_500Medium,
   Montserrat_600SemiBold,
+  Montserrat_600SemiBold_Italic,
 } from '@expo-google-fonts/montserrat';
 import {
   PlayfairDisplay_400Regular,
+  PlayfairDisplay_400Regular_Italic,
   PlayfairDisplay_500Medium,
+  PlayfairDisplay_500Medium_Italic,
   PlayfairDisplay_600SemiBold,
+  PlayfairDisplay_700Bold,
+  PlayfairDisplay_700Bold_Italic,
 } from '@expo-google-fonts/playfair-display';
 import { AuthProvider } from '@/providers/auth-provider';
 
@@ -30,9 +35,14 @@ export default function RootLayout() {
     Montserrat_400Regular,
     Montserrat_500Medium,
     Montserrat_600SemiBold,
+    Montserrat_600SemiBold_Italic,
     PlayfairDisplay_400Regular,
+    PlayfairDisplay_400Regular_Italic,
     PlayfairDisplay_500Medium,
+    PlayfairDisplay_500Medium_Italic,
     PlayfairDisplay_600SemiBold,
+    PlayfairDisplay_700Bold,
+    PlayfairDisplay_700Bold_Italic,
   });
 
   if (!loaded) {
@@ -43,11 +53,14 @@ export default function RootLayout() {
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <AuthProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
+          <Stack screenOptions={{ headerBackTitleVisible: false, headerBackButtonDisplayMode: 'minimal' }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="scan" options={{ title: 'Scan Stadium QR' }} />
             <Stack.Screen name="auth" options={{ title: 'Account' }} />
+            <Stack.Screen name="sports" options={{ headerShown: true, title: 'Sports' }} />
+            <Stack.Screen name="sport/[id]" options={{ headerShown: true, title: 'Sport' }} />
             <Stack.Screen name="stadium/[id]" options={{ headerShown: true, title: 'Stadium' }} />
+            <Stack.Screen name="player/[id]" options={{ headerShown: true, title: 'Player' }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
           <StatusBar style="auto" />
