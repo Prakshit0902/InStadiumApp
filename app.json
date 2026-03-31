@@ -4,7 +4,7 @@
     "slug": "instadium-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/Instadiumlogo.png",
     "scheme": "instadiumapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -24,7 +24,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/Instadiumlogo.png"
     },
     "plugins": [
       "expo-router",
