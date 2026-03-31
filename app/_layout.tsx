@@ -4,6 +4,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import * as Notifications from 'expo-notifications';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import 'react-native-reanimated';
 import { ClerkProvider } from '@clerk/clerk-expo';
@@ -32,6 +33,15 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 export const unstable_settings = {
   anchor: '(tabs)',
 };
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 function InStadiumHeader({ navigation, options, route, back }: NativeStackHeaderProps) {
   const insets = useSafeAreaInsets();
@@ -106,6 +116,8 @@ export default function RootLayout() {
             <Stack.Screen name="about-studio" options={{ headerShown: true, title: 'About the Studio' }} />
             <Stack.Screen name="press-media" options={{ headerShown: true, title: 'Press and Media' }} />
             <Stack.Screen name="inquiries" options={{ headerShown: true, title: 'Inquiries' }} />
+            <Stack.Screen name="search-stadium" options={{ headerShown: true, title: 'Search Stadium' }} />
+            <Stack.Screen name="find-stadium" options={{ headerShown: true, title: 'Find Stadium' }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
           <StatusBar style="auto" />

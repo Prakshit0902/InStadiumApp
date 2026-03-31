@@ -25,12 +25,12 @@ const keepers = [
   {
     name: 'Satyansh Singh',
     role: 'Founding Creator',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80',
+    image: require('../assets/images/satyanshsingh.jpg'),
   },
   {
     name: 'Prakshit Suthar',
     role: 'Founding Creator',
-    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80',
+    image: require('../assets/images/prakshitsuthar.jpeg'),
   },
 ];
 
@@ -107,6 +107,20 @@ export default function AboutStudioScreen() {
               <Text style={styles.keeperName}>{member.name}</Text>
             </View>
           ))}
+        </View>
+
+        <View style={styles.mentorSection}>
+          <Text style={styles.kicker}>Mentor</Text>
+          <Text style={styles.sectionTitle}>
+            Faculty <Text style={styles.sectionAccent}>Guidance</Text>
+          </Text>
+          <View style={styles.keeperCard}>
+            <Image source={require('../assets/images/facultyphoto.jpg')} style={styles.keeperImage} contentFit="cover" transition={120} />
+            <Text style={styles.keeperRole}>Faculty Mentor</Text>
+            <Text style={styles.keeperName}>Dr. Mukesh Mann</Text>
+            <Text style={styles.mentorSubline}>Head Of Department</Text>
+            <Text style={styles.mentorSubline}>Information Technology</Text>
+          </View>
         </View>
 
         <View style={styles.footerSection}>
@@ -245,6 +259,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 12,
   },
+  mentorSection: {
+    marginTop: 10,
+    paddingHorizontal: 20,
+    gap: 12,
+  },
   sectionTitle: {
     color: landingColors.plum,
     fontSize: 38,
@@ -275,6 +294,13 @@ const styles = StyleSheet.create({
     fontSize: 32,
     lineHeight: 36,
     fontFamily: landingFonts.serifMediumItalic,
+  },
+  mentorSubline: {
+    color: landingColors.subtle,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
+    fontFamily: landingFonts.sansRegular,
   },
   footerSection: {
     marginTop: 14,

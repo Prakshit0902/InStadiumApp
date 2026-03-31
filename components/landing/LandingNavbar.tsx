@@ -85,9 +85,6 @@ function LandingNavbarBase({ horizontalPadding, onScanPress, onSearchPress, onNo
           </Pressable>
         ))}
       </ScrollView>
-      <View style={styles.bottomBorder}>
-        <View style={styles.bottomAccent} />
-      </View>
     </View>
   );
 }
@@ -218,19 +215,5 @@ const styles = StyleSheet.create({
   linkPressed: {
     opacity: 0.75,
     transform: [{ scale: 0.98 }],
-  },
-  bottomBorder: {
-    height: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: landingColors.border,
-    justifyContent: 'flex-end',
-  },
-  bottomAccent: {
-    width: 64,
-    height: 2,
-    borderRadius: 999,
-    backgroundColor: landingColors.rose,
-    marginLeft: 20,
-    marginBottom: -1,
   },
 });
