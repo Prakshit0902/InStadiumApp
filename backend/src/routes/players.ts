@@ -5,19 +5,31 @@ const router = Router();
 
 router.get('/', async (req, res) => {
   const stadiumId = typeof req.query.stadiumId === 'string' ? req.query.stadiumId : null;
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
 
   try {
     const players = await prisma.player.findMany({
-      where: stadiumId
-        ? {
-            stadiumsPlayed: {
-              some: { id: stadiumId },
-            },
-          }
-        : {},
+      where: {
+        ...(stadiumId
+          ? {
+              stadiumsPlayed: {
+                some: { id: stadiumId },
+              },
+            }
+          : {}),
+        ...(q
+          ? {
+              name: {
+                contains: q,
+                mode: 'insensitive',
+              },
+            }
+          : {}),
+      },
       include: {
         sport: true,
       },
+      take: q ? 20 : undefined,
     });
 
     res.json(players);

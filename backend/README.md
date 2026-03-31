@@ -38,18 +38,23 @@ These endpoint shapes mirror the existing web backend patterns.
 ## Setup
 1. Copy `backend/.env.example` to `backend/.env`
 2. Set valid Neon `DATABASE_URL` and `DIRECT_URL`
-3. Configure Clerk JWT verification for protected routes:
+3. Configure Sarvam AI for chatbot extraction (optional but recommended):
+   - `SARVAM_API_KEY`
+   - Optional: `SARVAM_MODEL` (default `sarvam-m`)
+   - Optional: `SARVAM_CHAT_URL` (default `https://api.sarvam.ai/v1/chat/completions`)
+   - Optional: `CHAT_TELEMETRY_ENABLED=true` (logs redacted resolver telemetry for confidence debugging)
+4. Configure Clerk JWT verification for protected routes:
    - `CLERK_ISSUER`
    - Optional: `CLERK_JWKS_URL` (auto-derived from issuer if omitted)
    - Optional: `CLERK_AUDIENCE`
    - Optional: `CLERK_AUTHORIZED_PARTIES` (comma-separated `azp` values)
    - Optional: `CLERK_ADMIN_EMAILS` (comma-separated)
-3. Install dependencies:
+5. Install dependencies:
    - `cd instadium-app/backend`
    - `npm install`
-4. Generate Prisma client:
+6. Generate Prisma client:
    - `npm run prisma:generate`
-5. Start backend:
+7. Start backend:
    - `npm run dev`
 
 ## Run from App Root

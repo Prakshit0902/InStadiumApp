@@ -26,6 +26,7 @@ import {
   PlayfairDisplay_700Bold_Italic,
 } from '@expo-google-fonts/playfair-display';
 import { AuthProvider } from '@/providers/auth-provider';
+import { FloatingChatbot } from '@/components/chat/FloatingChatbot';
 import { landingColors, landingFonts } from '@/components/landing/theme';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -99,6 +100,7 @@ export default function RootLayout() {
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <AuthProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
           <Stack
             screenOptions={{
               headerBackTitleVisible: false,
@@ -120,6 +122,7 @@ export default function RootLayout() {
             <Stack.Screen name="find-stadium" options={{ headerShown: true, title: 'Find Stadium' }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
+          <FloatingChatbot />
           <StatusBar style="auto" />
         </ThemeProvider>
       </AuthProvider>
