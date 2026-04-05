@@ -43,6 +43,9 @@ These endpoint shapes mirror the existing web backend patterns.
    - Optional: `SARVAM_MODEL` (default `sarvam-m`)
    - Optional: `SARVAM_CHAT_URL` (default `https://api.sarvam.ai/v1/chat/completions`)
    - Optional: `CHAT_TELEMETRY_ENABLED=true` (logs redacted resolver telemetry for confidence debugging)
+    - Optional: Configure Geoapify Places API for nearby hotels/restaurants/heritage/religious places:
+       - `GEOAPIFY_API_KEY`
+       - Optional: `GEOAPIFY_PLACES_URL` (default `https://api.geoapify.com/v2/places`)
 4. Configure Clerk JWT verification for protected routes:
    - `CLERK_ISSUER`
    - Optional: `CLERK_JWKS_URL` (auto-derived from issuer if omitted)
@@ -77,6 +80,15 @@ In `instadium-app/.env`:
 
 ## Clerk Auth Protection
 - Public routes remain open for browsing data (`/api/stadiums`, `/api/sports`, `/api/players`, `/api/qr/resolve`, `/api/chat`).
+
+## Chatbot Personalization Behavior
+- On first open, the app requests location permission for chatbot personalization.
+- If allowed, the chatbot keeps nearby suggestions anchored to nearest stadium context and can fetch nearby:
+   - hotels
+   - restaurants
+   - heritage/monument points
+   - religious places
+- If denied, chatbot continues in non-personalized mode.
 - Protected routes now require a valid Bearer token signed by Clerk:
    - `/api/auth/me`
    - `/api/debug`

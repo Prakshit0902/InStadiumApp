@@ -69,6 +69,14 @@ type SearchCandidate = {
 
 type ListIntent = 'top_players' | 'nearby_stadiums' | 'sports_list' | null;
 
+type NearbyPlaceKind = 'heritage' | 'hotels' | 'restaurants' | 'religious' | 'all';
+
+type NearbyPlaceIntent = {
+  kind: NearbyPlaceKind;
+  categories: string[];
+  label: string;
+} | null;
+
 const DOMAIN_KEYWORDS = [
   'stadium',
   'player',
@@ -106,6 +114,8 @@ const HIGH_CONFIDENCE_SCORE = 0.86;
 const MIN_NAVIGATION_SCORE = 0.64;
 const MIN_CANDIDATE_SCORE = 0.4;
 const CLARIFY_SCORE_GAP = 0.16;
+const GEOAPIFY_PLACES_ENDPOINT = 'https://api.geoapify.com/v2/places';
+const GEOAPIFY_RADIUS_METERS = 5000;
 
 function telemetryEnabled(): boolean {
   return process.env.CHAT_TELEMETRY_ENABLED?.trim().toLowerCase() === 'true';
@@ -224,6 +234,60 @@ function detectSportKeyword(query: string): string | null {
   return null;
 }
 
+function detectNearbyPlaceIntent(query: string): NearbyPlaceIntent {
+  const normalized = normalizeText(query);
+  if (!normalized) {
+    return null;
+  }
+
+  const isNearby = /(near|nearest|closest|around|nearby|near me|around me|pass mein|nazdik|najdik)/i.test(normalized);
+  if (!isNearby) {
+    return null;
+  }
+
+  if (/(hotel|stay|accommodation|lodge)/i.test(normalized)) {
+    return {
+      kind: 'hotels',
+      categories: ['accommodation.hotel', 'accommodation.guest_house', 'accommodation.hostel'],
+      label: 'hotels',
+    };
+  }
+
+  if (/(restaurant|food|eat|cafe|dining)/i.test(normalized)) {
+    return {
+      kind: 'restaurants',
+      categories: ['catering.restaurant', 'catering.cafe'],
+      label: 'restaurants',
+    };
+  }
+
+  if (/(heritage|monument|museum|sightseeing|tourist|historical)/i.test(normalized)) {
+    return {
+      kind: 'heritage',
+      categories: ['tourism.sights', 'entertainment.museum'],
+      label: 'heritage and monuments',
+    };
+  }
+
+  if (/(religious|temple|mosque|church|gurudwara|shrine|dargah)/i.test(normalized)) {
+    return {
+      kind: 'religious',
+      categories: ['religion'],
+      label: 'religious places',
+    };
+  }
+
+  if (/(place|places|attraction|visit)/i.test(normalized)) {
+    return {
+      kind: 'all',
+      categories: ['tourism.sights', 'accommodation.hotel', 'catering.restaurant', 'religion'],
+      label: 'nearby places',
+    };
+  }
+
+  return null;
+}
+
 function parseLanguage(value: unknown): ChatLanguage {
   if (value === 'en' || value === 'hi' || value === 'auto') {
     return value;
@@ -326,6 +390,11 @@ function buildRoute(entityType: EntityType, id: string): string {
   }
 
   return `/sport/${encodeURIComponent(id)}`;
+}
+
+function buildMapUrl(name: string, latitude?: number, longitude?: number): string {
+  const q = typeof latitude === 'number' && typeof longitude === 'number' ? `${name} ${latitude},${longitude}` : name;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 }
 
 function toWikiSlug(value: string): string {
@@ -463,7 +532,8 @@ function getDistanceKm(aLat: number, aLng: number, bLat: number, bLng: number): 
 async function callSarvamContextAnswer(
   query: string,
   language: 'en' | 'hi',
-  contextLinks: ChatLink[]
+  contextLinks: ChatLink[],
+  locationContext?: string
 ): Promise<string | null> {
   const apiKey = process.env.SARVAM_API_KEY?.trim();
   if (!apiKey) {
@@ -483,6 +553,9 @@ async function callSarvamContextAnswer(
     'Give a concise and practical answer in 2-4 sentences.',
     'If exact page is unavailable, still provide helpful app-context guidance.',
     'Do not hallucinate IDs, routes, or unavailable facts.',
+    locationContext
+      ? `Strict personalization mode: keep guidance centered around this local context only: ${locationContext}.`
+      : 'Personalization mode: disabled or unavailable.',
     `Known app context: ${contextSummary || 'No direct entities matched.'}`,
     `User query: ${query}`,
   ].join('\n');
@@ -798,6 +871,79 @@ async function resolveSportsLinks(): Promise<ChatLink[]> {
   }));
 }
 
+async function resolveLocationContextLinks(query: string, location: ChatLocation): Promise<ChatLink[]> {
+  try {
+    const links = await resolveNearestStadiumLinks(query, location);
+    return links.slice(0, 2);
+  } catch {
+    return [];
+  }
+}
+
+type GeoapifyPlaceFeature = {
+  properties?: {
+    place_id?: string;
+    name?: string;
+    formatted?: string;
+    lat?: number;
+    lon?: number;
+  };
+};
+
+async function fetchNearbyPlaces(location: ChatLocation, categories: string[], limit = 5): Promise<ChatLink[]> {
+  const apiKey = process.env.GEOAPIFY_API_KEY?.trim();
+  if (!apiKey) {
+    return [];
+  }
+
+  const endpoint = process.env.GEOAPIFY_PLACES_URL?.trim() || GEOAPIFY_PLACES_ENDPOINT;
+  const filter = `circle:${location.longitude},${location.latitude},${GEOAPIFY_RADIUS_METERS}`;
+  const bias = `proximity:${location.longitude},${location.latitude}`;
+
+  const params = new URLSearchParams({
+    categories: categories.join(','),
+    filter,
+    bias,
+    limit: String(limit),
+    apiKey,
+  });
+
+  try {
+    const response = await fetch(`${endpoint}?${params.toString()}`, { method: 'GET' });
+    if (!response.ok) {
+      return [];
+    }
+
+    const payload = (await response.json()) as { features?: GeoapifyPlaceFeature[] };
+    const features = Array.isArray(payload.features) ? payload.features : [];
+
+    const links: ChatLink[] = [];
+    for (const [idx, feature] of features.entries()) {
+      const props = feature.properties ?? {};
+      const name = (props.name || props.formatted || '').trim();
+      if (!name) {
+        continue;
+      }
+
+      const lat = typeof props.lat === 'number' ? props.lat : undefined;
+      const lon = typeof props.lon === 'number' ? props.lon : undefined;
+
+      links.push({
+        id: String(props.place_id || `${name}-${idx}`),
+        entityType: 'external',
+        label: name,
+        subtitle: props.formatted || 'Nearby place',
+        route: buildMapUrl(name, lat, lon),
+        score: Number((0.92 - idx * 0.03).toFixed(2)),
+      });
+    }
+
+    return links.slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
 router.post('/', async (req, res) => {
   try {
     const body = (req.body ?? {}) as ChatRequestBody;
@@ -813,7 +959,67 @@ router.post('/', async (req, res) => {
     }
 
     const listIntent = detectListIntent(query);
+    const nearbyPlaceIntent = detectNearbyPlaceIntent(query);
     const nearestIntent = isNearestIntent(query) && /stadium|ground|cricket|football|hockey|kabaddi|sport/i.test(normalizeText(query));
+    if (nearbyPlaceIntent) {
+      const answerLanguage: 'en' | 'hi' = containsDevanagari(query) ? 'hi' : 'en';
+      if (!location) {
+        const response: ChatResponse = {
+          reply:
+            answerLanguage === 'hi'
+              ? 'Nearby places dhoondhne ke liye location access chahiye. Permission allow karein, phir main aapko nearest suggestions dikhata hoon.'
+              : 'To find nearby places, I need location access. Please allow location and I will show nearest suggestions.',
+          action: 'answer_only',
+          links: [],
+          clarifications: [],
+          structured: buildStructuredSections({
+            language: answerLanguage,
+            query,
+            links: [],
+            reason: 'nearest_missing_location',
+          }),
+          meta: {
+            query,
+            language: answerLanguage,
+            inputMode,
+            relevant: true,
+            source: 'db-fallback',
+          },
+        };
+
+        return res.json(response);
+      }
+
+      const placeLinks = await fetchNearbyPlaces(location, nearbyPlaceIntent.categories, 6);
+      const locationContextLinks = await resolveLocationContextLinks(query, location);
+      const links = [...locationContextLinks.slice(0, 1), ...placeLinks].slice(0, 7);
+
+      const response: ChatResponse = {
+        reply:
+          answerLanguage === 'hi'
+            ? `Yeh aapki current location ke paas ke ${nearbyPlaceIntent.label} hain. Main context ko nearest stadium area tak hi limited rakh raha hoon.`
+            : `These are ${nearbyPlaceIntent.label} near your current location. I have kept the context restricted to your nearest stadium area.`,
+        action: links.length > 0 ? 'show_links' : 'answer_only',
+        links,
+        clarifications: [],
+        structured: buildStructuredSections({
+          language: answerLanguage,
+          query,
+          links,
+          reason: 'with_links',
+        }),
+        meta: {
+          query,
+          language: answerLanguage,
+          inputMode,
+          relevant: true,
+          source: 'db-fallback',
+        },
+      };
+
+      return res.json(response);
+    }
+
     if (listIntent || nearestIntent) {
       const answerLanguage: 'en' | 'hi' = containsDevanagari(query) ? 'hi' : 'en';
       let links: ChatLink[] = [];
@@ -1016,10 +1222,17 @@ router.post('/', async (req, res) => {
     }
 
     if (rankedLinks.length === 0) {
-      const llmReply = await callSarvamContextAnswer(query, answerLanguage, rankedLinks);
+      const locationContextLinks = location ? await resolveLocationContextLinks(query, location) : [];
+      const llmReply = await callSarvamContextAnswer(
+        query,
+        answerLanguage,
+        [...locationContextLinks, ...rankedLinks].slice(0, 3),
+        locationContextLinks[0]?.label
+      );
       const wikiName = extracted?.entityNameEnglish || extracted?.entityName || inferredName;
       const wikiLink = wikiName ? buildWikipediaLink(wikiName, answerLanguage, extracted?.entityType ?? null) : null;
-      const links = wikiLink ? [wikiLink] : [];
+      const linksBase = [...locationContextLinks.slice(0, 1), ...(wikiLink ? [wikiLink] : [])];
+      const links = linksBase;
       const response: ChatResponse = {
         reply: sanitizeModelOutput(llmReply || buildFallbackReply(answerLanguage, query)),
         action: links.length > 0 ? 'show_links' : 'answer_only',
@@ -1062,10 +1275,18 @@ router.post('/', async (req, res) => {
       Boolean(second) && (topScore < HIGH_CONFIDENCE_SCORE || topScore - secondScore < CLARIFY_SCORE_GAP);
 
     if (topScore < MIN_NAVIGATION_SCORE) {
-      const llmReply = await callSarvamContextAnswer(query, answerLanguage, rankedLinks);
+      const locationContextLinks = location ? await resolveLocationContextLinks(query, location) : [];
+      const llmReply = await callSarvamContextAnswer(
+        query,
+        answerLanguage,
+        [...locationContextLinks, ...rankedLinks].slice(0, 4),
+        locationContextLinks[0]?.label
+      );
       const wikiName = extracted?.entityNameEnglish || extracted?.entityName || inferredName;
       const wikiLink = wikiName ? buildWikipediaLink(wikiName, answerLanguage, extracted?.entityType ?? null) : null;
-      const links = wikiLink ? [wikiLink, ...rankedLinks.slice(0, 2)] : rankedLinks.slice(0, 2);
+      const links = wikiLink
+        ? [...locationContextLinks.slice(0, 1), wikiLink, ...rankedLinks.slice(0, 2)]
+        : [...locationContextLinks.slice(0, 1), ...rankedLinks.slice(0, 2)];
       const response: ChatResponse = {
         reply: sanitizeModelOutput(llmReply || buildGeneralContextReply(answerLanguage, query)),
         action: links.length > 0 ? 'show_links' : 'answer_only',
