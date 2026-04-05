@@ -140,6 +140,7 @@ export function FloatingChatbot() {
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [currentLocation, setCurrentLocation] = useState<ChatLocation | null>(null);
+  const [locationPrompted, setLocationPrompted] = useState(false);
   const keyboardOffset = useRef(new Animated.Value(0)).current;
   const speechModule = getSpeechModule();
   const voiceAvailable = !!speechModule;
@@ -183,7 +184,7 @@ export function FloatingChatbot() {
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (permission.status !== 'granted') {
-        setError('Location permission is needed for nearest-stadium results.');
+        setError('Location permission denied. Chatbot will continue without personalization.');
         return null;
       }
 
@@ -199,6 +200,38 @@ export function FloatingChatbot() {
       return null;
     }
   }, [currentLocation]);
+
+  const handleOpenChat = useCallback(async () => {
+    setOpen(true);
+
+    if (locationPrompted) {
+      return;
+    }
+
+    setLocationPrompted(true);
+    const location = await resolveLocation();
+
+    if (location) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: generateId('assistant'),
+          role: 'assistant',
+          text: 'Location access enabled. I will personalize suggestions around your nearest stadium and nearby places.',
+        },
+      ]);
+      return;
+    }
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: generateId('assistant'),
+        role: 'assistant',
+        text: 'Location is not enabled, so I will continue in regular mode without personalization.',
+      },
+    ]);
+  }, [locationPrompted, resolveLocation]);
 
   const sendMessage = useCallback(
     async (text: string, inputMode: 'text' | 'voice') => {
@@ -226,7 +259,7 @@ export function FloatingChatbot() {
 
       try {
         let locationPayload: ChatLocation | null = currentLocation;
-        if (queryNeedsLocation(value)) {
+        if (!locationPayload && queryNeedsLocation(value)) {
           locationPayload = await resolveLocation();
         }
 
@@ -426,7 +459,7 @@ export function FloatingChatbot() {
           </Animated.View>
         </KeyboardAvoidingView>
       ) : (
-        <Pressable style={styles.fab} onPress={() => setOpen(true)}>
+        <Pressable style={styles.fab} onPress={() => void handleOpenChat()}>
           <Ionicons name="chatbubble-ellipses" size={22} color="#FFFFFF" />
         </Pressable>
       )}
