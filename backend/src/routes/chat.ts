@@ -167,11 +167,17 @@ function normalizeText(value: string): string {
 }
 
 function sanitizeModelOutput(value: string): string {
-  return value
+  const cleaned = value
     .replace(/<think>[\s\S]*?<\/think>/gi, ' ')
     .replace(/<think>|<\/think>/gi, ' ')
+    .replace(/^(okay|alright|sure)[^\n]*\n?/i, '')
+    .replace(/^(the user is asking[^\n]*\n?)/i, '')
+    .replace(/^(in the context of[^\n]*\n?)/i, '')
+    .replace(/^(reasoning|analysis)\s*:\s*/i, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
+
+  return cleaned;
 }
 
 function extractFirstJsonObject(value: string): string | null {
@@ -346,6 +352,15 @@ function inferEntityNameFromQuery(query: string): string | null {
   return null;
 }
 
+function isEntityProfileQuery(query: string): boolean {
+  const normalized = normalizeText(query);
+  if (!normalized) {
+    return false;
+  }
+
+  return /(who is|tell me about|about|profile|career|achievements|details of|information about)/i.test(normalized);
+}
+
 function scoreCandidate(query: string, candidateName: string): number {
   const q = normalizeText(query);
   const c = normalizeText(candidateName);
@@ -492,6 +507,27 @@ function buildStructuredSections(params: {
   return sections;
 }
 
+function toBulletItems(value: unknown, max = 5): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (typeof item === 'string' ? item : JSON.stringify(item)))
+      .filter(Boolean)
+      .slice(0, max);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>)
+      .slice(0, max)
+      .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`);
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    return [value.trim()];
+  }
+
+  return [];
+}
+
 function buildFallbackReply(language: 'en' | 'hi', query: string): string {
   if (language === 'hi') {
     return `Mujhe "${query}" ke liye app mein direct page nahin mila, lekin main InStadium context mein madad kar sakta hoon. Aap player, stadium ya sport ka naam pooch sakte hain.`;
@@ -585,6 +621,74 @@ async function callSarvamContextAnswer(
     const rawContent = payload.choices?.[0]?.message?.content?.trim() ?? '';
     const content = sanitizeModelOutput(rawContent);
     return content || null;
+  } catch {
+    return null;
+  }
+}
+
+async function callSarvamEntityProfileSections(query: string, language: 'en' | 'hi'): Promise<ChatStructuredSection[] | null> {
+  const apiKey = process.env.SARVAM_API_KEY?.trim();
+  if (!apiKey) {
+    return null;
+  }
+
+  const endpoint = process.env.SARVAM_CHAT_URL?.trim() || 'https://api.sarvam.ai/v1/chat/completions';
+  const model = process.env.SARVAM_MODEL?.trim() || 'sarvam-m';
+  const prompt = [
+    'You are a sports profile formatter for InStadium app.',
+    `Answer language: ${language === 'hi' ? 'Hindi' : 'English'}.`,
+    'Return STRICT JSON only with this schema:',
+    '{"reply":"string","sections":[{"title":"string","items":["string"]}]}',
+    'Include 2-4 sections with concise bullet points.',
+    'No chain-of-thought. No reasoning preface. No markdown fences.',
+    'Focus only on sports context.',
+    `User query: ${query}`,
+  ].join('\n');
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'api-subscription-key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        max_tokens: 380,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const raw = payload.choices?.[0]?.message?.content ?? '';
+    const cleaned = sanitizeModelOutput(raw);
+    const jsonPayload = extractFirstJsonObject(cleaned);
+    if (!jsonPayload) {
+      return null;
+    }
+
+    const parsed = JSON.parse(jsonPayload) as {
+      sections?: Array<{ title?: string; items?: string[] }>;
+    };
+
+    const sections = Array.isArray(parsed.sections)
+      ? parsed.sections
+          .map((section) => ({
+            title: typeof section.title === 'string' && section.title.trim() ? section.title.trim() : 'Details',
+            items: Array.isArray(section.items) ? section.items.filter((item) => typeof item === 'string' && item.trim()) : [],
+          }))
+          .filter((section) => section.items.length > 0)
+          .slice(0, 4)
+      : [];
+
+    return sections.length > 0 ? sections : null;
   } catch {
     return null;
   }
@@ -869,6 +973,120 @@ async function resolveSportsLinks(): Promise<ChatLink[]> {
     route: buildRoute('sport', sport.id),
     score: Number((0.94 - idx * 0.02).toFixed(2)),
   }));
+}
+
+async function buildEntityProfileSectionsFromDb(entityType: EntityType, id: string): Promise<ChatStructuredSection[]> {
+  if (entityType === 'player') {
+    const player = await prisma.player.findUnique({
+      where: { id },
+      include: {
+        sport: true,
+        stadiumsPlayed: {
+          select: { name: true, city: true },
+          take: 5,
+        },
+      },
+    });
+
+    if (!player) {
+      return [];
+    }
+
+    const achievements = toBulletItems(player.achievements, 5);
+    const stadiums = player.stadiumsPlayed.map((s) => `${s.name} (${s.city})`).slice(0, 5);
+
+    return [
+      {
+        title: 'Player Snapshot',
+        items: [`Name: ${player.name}`, `Sport: ${player.sport.name}`, `Country: ${player.country}`],
+      },
+      {
+        title: 'Achievements',
+        items: achievements.length > 0 ? achievements : ['Achievements data is limited in current dataset.'],
+      },
+      {
+        title: 'Stadiums Played',
+        items: stadiums.length > 0 ? stadiums : ['No stadium mapping available in current dataset.'],
+      },
+    ];
+  }
+
+  if (entityType === 'stadium') {
+    const stadium = await prisma.stadium.findUnique({
+      where: { id },
+      include: {
+        sportsPlayed: { select: { name: true }, take: 6 },
+        players: { select: { name: true }, take: 6 },
+      },
+    });
+
+    if (!stadium) {
+      return [];
+    }
+
+    return [
+      {
+        title: 'Stadium Snapshot',
+        items: [
+          `Name: ${stadium.name}`,
+          `Location: ${stadium.city}, ${stadium.state}, ${stadium.country}`,
+          `Capacity: ${stadium.capacity}`,
+          `Built: ${stadium.builtYear}`,
+        ],
+      },
+      {
+        title: 'Sports Hosted',
+        items:
+          stadium.sportsPlayed.length > 0
+            ? stadium.sportsPlayed.map((sport) => sport.name).slice(0, 6)
+            : ['Sports mapping is limited in current dataset.'],
+      },
+      {
+        title: 'Notable Players Linked',
+        items:
+          stadium.players.length > 0
+            ? stadium.players.map((player) => player.name).slice(0, 6)
+            : ['Player mapping is limited in current dataset.'],
+      },
+    ];
+  }
+
+  if (entityType === 'sport') {
+    const sport = await prisma.sport.findUnique({
+      where: { id },
+      include: {
+        players: { select: { name: true, country: true }, take: 8 },
+        stadiums: { select: { name: true, city: true }, take: 8 },
+      },
+    });
+
+    if (!sport) {
+      return [];
+    }
+
+    return [
+      {
+        title: 'Sport Snapshot',
+        items: [`Name: ${sport.name}`, `Description: ${sport.description}`],
+      },
+      {
+        title: 'Top Players',
+        items:
+          sport.players.length > 0
+            ? sport.players.map((player) => `${player.name} (${player.country})`).slice(0, 6)
+            : ['Player mapping is limited in current dataset.'],
+      },
+      {
+        title: 'Associated Stadiums',
+        items:
+          sport.stadiums.length > 0
+            ? sport.stadiums.map((stadium) => `${stadium.name} (${stadium.city})`).slice(0, 6)
+            : ['Stadium mapping is limited in current dataset.'],
+      },
+    ];
+  }
+
+  return [];
 }
 
 async function resolveLocationContextLinks(query: string, location: ChatLocation): Promise<ChatLink[]> {
@@ -1222,28 +1440,42 @@ router.post('/', async (req, res) => {
     }
 
     if (rankedLinks.length === 0) {
+      const profileQuery = isEntityProfileQuery(query) || Boolean(extracted?.entityType);
       const locationContextLinks = location ? await resolveLocationContextLinks(query, location) : [];
-      const llmReply = await callSarvamContextAnswer(
-        query,
-        answerLanguage,
-        [...locationContextLinks, ...rankedLinks].slice(0, 3),
-        locationContextLinks[0]?.label
-      );
+      const llmReply = profileQuery
+        ? null
+        : await callSarvamContextAnswer(
+            query,
+            answerLanguage,
+            [...locationContextLinks, ...rankedLinks].slice(0, 3),
+            locationContextLinks[0]?.label
+          );
+      const llmSections = profileQuery ? await callSarvamEntityProfileSections(query, answerLanguage) : null;
       const wikiName = extracted?.entityNameEnglish || extracted?.entityName || inferredName;
       const wikiLink = wikiName ? buildWikipediaLink(wikiName, answerLanguage, extracted?.entityType ?? null) : null;
       const linksBase = [...locationContextLinks.slice(0, 1), ...(wikiLink ? [wikiLink] : [])];
       const links = linksBase;
       const response: ChatResponse = {
-        reply: sanitizeModelOutput(llmReply || buildFallbackReply(answerLanguage, query)),
+        reply: sanitizeModelOutput(
+          llmReply ||
+            (profileQuery
+              ? answerLanguage === 'hi'
+                ? `Maine ${wikiName || 'is query'} ke liye sports context summary tayyar ki hai. Details neeche bullet points mein hain.`
+                : `I prepared a sports-context summary for ${wikiName || 'this query'}. Details are listed in bullet points below.`
+              : buildFallbackReply(answerLanguage, query))
+        ),
         action: links.length > 0 ? 'show_links' : 'answer_only',
         links,
         clarifications: [],
-        structured: buildStructuredSections({
-          language: answerLanguage,
-          query,
-          links,
-          reason: 'relevant_no_match',
-        }),
+        structured:
+          llmSections && llmSections.length > 0
+            ? llmSections
+            : buildStructuredSections({
+                language: answerLanguage,
+                query,
+                links,
+                reason: 'relevant_no_match',
+              }),
         meta: {
           query,
           language: answerLanguage,
@@ -1374,6 +1606,12 @@ router.post('/', async (req, res) => {
     const wikiName = extracted?.entityNameEnglish || extracted?.entityName || inferredName || links[0]?.label;
     const wikiLink = wikiName ? buildWikipediaLink(wikiName, answerLanguage, extracted?.entityType ?? null) : null;
     const finalLinks = wikiLink ? [...links, wikiLink] : links;
+    const primaryEntityType = links[0]?.entityType;
+    const primaryEntityId = links[0]?.id;
+    const profileSections =
+      primaryEntityType && primaryEntityType !== 'external' && primaryEntityId
+        ? await buildEntityProfileSectionsFromDb(primaryEntityType, primaryEntityId)
+        : [];
     const response: ChatResponse = {
       reply:
         answerLanguage === 'hi'
@@ -1382,12 +1620,15 @@ router.post('/', async (req, res) => {
       action: 'show_links',
       links: finalLinks,
       clarifications: [],
-      structured: buildStructuredSections({
-        language: answerLanguage,
-        query,
-        links: finalLinks,
-        reason: 'with_links',
-      }),
+      structured:
+        profileSections.length > 0
+          ? profileSections
+          : buildStructuredSections({
+              language: answerLanguage,
+              query,
+              links: finalLinks,
+              reason: 'with_links',
+            }),
       meta: {
         query,
         language: answerLanguage,
