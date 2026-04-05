@@ -74,6 +74,7 @@ type NearbyPlaceKind = 'heritage' | 'hotels' | 'restaurants' | 'religious' | 'al
 type NearbyPlaceIntent = {
   kind: NearbyPlaceKind;
   categories: string[];
+  overpassTags: string[];
   label: string;
 } | null;
 
@@ -115,7 +116,9 @@ const MIN_NAVIGATION_SCORE = 0.64;
 const MIN_CANDIDATE_SCORE = 0.4;
 const CLARIFY_SCORE_GAP = 0.16;
 const GEOAPIFY_PLACES_ENDPOINT = 'https://api.geoapify.com/v2/places';
-const GEOAPIFY_RADIUS_METERS = 5000;
+const GEOAPIFY_DEFAULT_RADIUS_METERS = 5000;
+const NEARBY_SEARCH_RADII_METERS = [5000, 12000, 25000, 50000, 100000, 200000, 350000];
+const OVERPASS_ENDPOINT = 'https://overpass-api.de/api/interpreter';
 
 function telemetryEnabled(): boolean {
   return process.env.CHAT_TELEMETRY_ENABLED?.trim().toLowerCase() === 'true';
@@ -255,6 +258,7 @@ function detectNearbyPlaceIntent(query: string): NearbyPlaceIntent {
     return {
       kind: 'hotels',
       categories: ['accommodation.hotel', 'accommodation.guest_house', 'accommodation.hostel'],
+      overpassTags: ['tourism=hotel', 'tourism=guest_house', 'tourism=hostel'],
       label: 'hotels',
     };
   }
@@ -263,6 +267,7 @@ function detectNearbyPlaceIntent(query: string): NearbyPlaceIntent {
     return {
       kind: 'restaurants',
       categories: ['catering.restaurant', 'catering.cafe'],
+      overpassTags: ['amenity=restaurant', 'amenity=cafe', 'amenity=fast_food'],
       label: 'restaurants',
     };
   }
@@ -271,6 +276,7 @@ function detectNearbyPlaceIntent(query: string): NearbyPlaceIntent {
     return {
       kind: 'heritage',
       categories: ['tourism.sights', 'entertainment.museum'],
+      overpassTags: ['historic=monument', 'historic=memorial', 'tourism=museum', 'tourism=attraction'],
       label: 'heritage and monuments',
     };
   }
@@ -279,6 +285,7 @@ function detectNearbyPlaceIntent(query: string): NearbyPlaceIntent {
     return {
       kind: 'religious',
       categories: ['religion'],
+      overpassTags: ['amenity=place_of_worship', 'building=church', 'building=temple', 'religion=muslim'],
       label: 'religious places',
     };
   }
@@ -287,6 +294,14 @@ function detectNearbyPlaceIntent(query: string): NearbyPlaceIntent {
     return {
       kind: 'all',
       categories: ['tourism.sights', 'accommodation.hotel', 'catering.restaurant', 'religion'],
+      overpassTags: [
+        'tourism=attraction',
+        'tourism=museum',
+        'tourism=hotel',
+        'amenity=restaurant',
+        'amenity=cafe',
+        'amenity=place_of_worship',
+      ],
       label: 'nearby places',
     };
   }
@@ -359,6 +374,83 @@ function isEntityProfileQuery(query: string): boolean {
   }
 
   return /(who is|tell me about|about|profile|career|achievements|details of|information about)/i.test(normalized);
+}
+
+function inferProfileEntityType(query: string, extractedType: EntityType | null): EntityType {
+  if (extractedType === 'player' || extractedType === 'stadium' || extractedType === 'sport') {
+    return extractedType;
+  }
+
+  const normalized = normalizeText(query);
+  if (/(who is|player|batsman|bowler|captain|athlete|coach)/i.test(normalized)) {
+    return 'player';
+  }
+
+  if (/(stadium|ground|arena|venue)/i.test(normalized)) {
+    return 'stadium';
+  }
+
+  if (/(sport|game|cricket|football|hockey|kabaddi|tennis|badminton)/i.test(normalized)) {
+    return 'sport';
+  }
+
+  return 'player';
+}
+
+function buildProfileFallbackSections(
+  language: 'en' | 'hi',
+  entityType: EntityType,
+  entityName: string,
+  wikiAvailable: boolean
+): ChatStructuredSection[] {
+  const name = entityName || (language === 'hi' ? 'is entity' : 'this entity');
+
+  if (entityType === 'player') {
+    return [
+      {
+        title: language === 'hi' ? 'Player Snapshot' : 'Player Snapshot',
+        items: [
+          language === 'hi' ? `Name: ${name}` : `Name: ${name}`,
+          language === 'hi' ? 'Role: Sports player profile' : 'Role: Sports player profile',
+          language === 'hi' ? 'Status: Direct app profile not available' : 'Status: Direct app profile not available',
+        ],
+      },
+      {
+        title: language === 'hi' ? 'How To Explore More' : 'How To Explore More',
+        items: [
+          language === 'hi' ? 'Open reference for career summary and achievements' : 'Open reference for career summary and achievements',
+          language === 'hi' ? 'Ask for related sport to see mapped stadiums and players' : 'Ask for related sport to see mapped stadiums and players',
+          ...(wikiAvailable
+            ? [language === 'hi' ? 'Wikipedia link is included below' : 'Wikipedia link is included below']
+            : []),
+        ],
+      },
+    ];
+  }
+
+  if (entityType === 'stadium') {
+    return [
+      {
+        title: language === 'hi' ? 'Stadium Snapshot' : 'Stadium Snapshot',
+        items: [
+          language === 'hi' ? `Name: ${name}` : `Name: ${name}`,
+          language === 'hi' ? 'Status: Direct app stadium page not available' : 'Status: Direct app stadium page not available',
+          language === 'hi' ? 'You can still use nearby stadium and places queries' : 'You can still use nearby stadium and places queries',
+        ],
+      },
+    ];
+  }
+
+  return [
+    {
+      title: language === 'hi' ? 'Sport Snapshot' : 'Sport Snapshot',
+      items: [
+        language === 'hi' ? `Name: ${name}` : `Name: ${name}`,
+        language === 'hi' ? 'Status: Direct app sport page not available' : 'Status: Direct app sport page not available',
+        language === 'hi' ? 'Ask for top players or associated stadiums for this sport' : 'Ask for top players or associated stadiums for this sport',
+      ],
+    },
+  ];
 }
 
 function scoreCandidate(query: string, candidateName: string): number {
@@ -1108,14 +1200,19 @@ type GeoapifyPlaceFeature = {
   };
 };
 
-async function fetchNearbyPlaces(location: ChatLocation, categories: string[], limit = 5): Promise<ChatLink[]> {
+async function fetchNearbyPlaces(
+  location: ChatLocation,
+  categories: string[],
+  limit = 5,
+  radiusMeters = GEOAPIFY_DEFAULT_RADIUS_METERS
+): Promise<ChatLink[]> {
   const apiKey = process.env.GEOAPIFY_API_KEY?.trim();
   if (!apiKey) {
     return [];
   }
 
   const endpoint = process.env.GEOAPIFY_PLACES_URL?.trim() || GEOAPIFY_PLACES_ENDPOINT;
-  const filter = `circle:${location.longitude},${location.latitude},${GEOAPIFY_RADIUS_METERS}`;
+  const filter = `circle:${location.longitude},${location.latitude},${radiusMeters}`;
   const bias = `proximity:${location.longitude},${location.latitude}`;
 
   const params = new URLSearchParams({
@@ -1145,12 +1242,19 @@ async function fetchNearbyPlaces(location: ChatLocation, categories: string[], l
 
       const lat = typeof props.lat === 'number' ? props.lat : undefined;
       const lon = typeof props.lon === 'number' ? props.lon : undefined;
+      const distanceKm =
+        typeof lat === 'number' && typeof lon === 'number'
+          ? getDistanceKm(location.latitude, location.longitude, lat, lon)
+          : null;
 
       links.push({
         id: String(props.place_id || `${name}-${idx}`),
         entityType: 'external',
         label: name,
-        subtitle: props.formatted || 'Nearby place',
+        subtitle:
+          distanceKm !== null
+            ? `${props.formatted || 'Nearby place'} • ${distanceKm.toFixed(1)} km`
+            : props.formatted || 'Nearby place',
         route: buildMapUrl(name, lat, lon),
         score: Number((0.92 - idx * 0.03).toFixed(2)),
       });
@@ -1160,6 +1264,212 @@ async function fetchNearbyPlaces(location: ChatLocation, categories: string[], l
   } catch {
     return [];
   }
+}
+
+type OverpassElement = {
+  id: number;
+  lat?: number;
+  lon?: number;
+  tags?: Record<string, string>;
+  center?: { lat: number; lon: number };
+};
+
+function overpassQuery(lat: number, lon: number, radius: number, tags: string[]): string {
+  const statements = tags
+    .map((tag) => {
+      const [k, v] = tag.split('=');
+      if (!k || !v) {
+        return '';
+      }
+
+      return `node(around:${radius},${lat},${lon})["${k}"="${v}"];\nway(around:${radius},${lat},${lon})["${k}"="${v}"];\nrelation(around:${radius},${lat},${lon})["${k}"="${v}"];`;
+    })
+    .filter(Boolean)
+    .join('\n');
+
+  return `[out:json][timeout:25];\n(\n${statements}\n);\nout center 40;`;
+}
+
+async function fetchNearbyPlacesOverpass(
+  location: ChatLocation,
+  tags: string[],
+  limit = 5,
+  radiusMeters = GEOAPIFY_DEFAULT_RADIUS_METERS
+): Promise<ChatLink[]> {
+  if (!tags.length) {
+    return [];
+  }
+
+  const endpoint = process.env.OVERPASS_API_URL?.trim() || OVERPASS_ENDPOINT;
+  const query = overpassQuery(location.latitude, location.longitude, Math.max(1200, radiusMeters), tags);
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+      },
+      body: `data=${encodeURIComponent(query)}`,
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const payload = (await response.json()) as { elements?: OverpassElement[] };
+    const elements = Array.isArray(payload.elements) ? payload.elements : [];
+    const dedupe = new Set<string>();
+    const links: ChatLink[] = [];
+
+    for (const [idx, element] of elements.entries()) {
+      const tagsData = element.tags ?? {};
+      const name = (tagsData.name || tagsData['name:en'] || '').trim();
+      if (!name) {
+        continue;
+      }
+
+      const lat = typeof element.lat === 'number' ? element.lat : element.center?.lat;
+      const lon = typeof element.lon === 'number' ? element.lon : element.center?.lon;
+      if (typeof lat !== 'number' || typeof lon !== 'number') {
+        continue;
+      }
+
+      const key = `${name.toLowerCase()}|${lat.toFixed(4)}|${lon.toFixed(4)}`;
+      if (dedupe.has(key)) {
+        continue;
+      }
+      dedupe.add(key);
+
+      const category = tagsData.tourism || tagsData.amenity || tagsData.historic || tagsData.religion || 'place';
+      const distanceKm = getDistanceKm(location.latitude, location.longitude, lat, lon);
+      links.push({
+        id: `osm:${element.id}`,
+        entityType: 'external',
+        label: name,
+        subtitle: `Nearby ${category} • ${distanceKm.toFixed(1)} km`,
+        route: buildMapUrl(name, lat, lon),
+        score: Number((0.88 - idx * 0.02).toFixed(2)),
+      });
+
+      if (links.length >= limit) {
+        break;
+      }
+    }
+
+    return links;
+  } catch {
+    return [];
+  }
+}
+
+function mergeUniqueLinks(...sets: ChatLink[][]): ChatLink[] {
+  const out: ChatLink[] = [];
+  const seen = new Set<string>();
+
+  for (const set of sets) {
+    for (const item of set) {
+      const key = `${item.entityType}:${item.id}:${item.route}`;
+      if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      out.push(item);
+    }
+  }
+
+  return out;
+}
+
+function extractDistanceKm(link: ChatLink): number {
+  const text = link.subtitle || '';
+  const match = text.match(/([0-9]+(?:\.[0-9]+)?)\s*km/i);
+  if (!match) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return Number(match[1]);
+}
+
+function matchesNearbyIntent(kind: NearbyPlaceKind, link: ChatLink): boolean {
+  if (kind === 'all') {
+    return true;
+  }
+
+  const text = `${link.label} ${link.subtitle ?? ''}`.toLowerCase();
+  if (kind === 'hotels') {
+    return /(hotel|hostel|guest house|resort|inn|stay|accommodation)/i.test(text);
+  }
+
+  if (kind === 'restaurants') {
+    return /(restaurant|cafe|dining|food|fast_food|eatery|kitchen)/i.test(text);
+  }
+
+  if (kind === 'heritage') {
+    return /(museum|monument|memorial|heritage|attraction|historic|fort|palace|temple complex)/i.test(text);
+  }
+
+  if (kind === 'religious') {
+    return /(temple|mosque|church|gurudwara|dargah|shrine|place_of_worship|religion)/i.test(text);
+  }
+
+  return true;
+}
+
+async function resolveNearbyPlaceLinks(
+  location: ChatLocation,
+  intent: Exclude<NearbyPlaceIntent, null>,
+  desiredCount: number
+): Promise<ChatLink[]> {
+  let merged: ChatLink[] = [];
+
+  for (const radius of NEARBY_SEARCH_RADII_METERS) {
+    const [geoapifyLinks, overpassLinks] = await Promise.all([
+      fetchNearbyPlaces(location, intent.categories, Math.max(desiredCount + 2, 8), radius),
+      fetchNearbyPlacesOverpass(location, intent.overpassTags, Math.max(desiredCount + 2, 8), radius),
+    ]);
+
+    merged = mergeUniqueLinks(merged, geoapifyLinks, overpassLinks)
+      .filter((link) => matchesNearbyIntent(intent.kind, link))
+      .sort((a, b) => extractDistanceKm(a) - extractDistanceKm(b));
+
+    if (merged.length >= desiredCount) {
+      return merged.slice(0, desiredCount);
+    }
+  }
+
+  if (merged.length === 0 && intent.kind === 'all') {
+    const fallbackKinds: Exclude<NearbyPlaceIntent, null>[] = [
+      {
+        kind: 'restaurants',
+        categories: ['catering.restaurant', 'catering.cafe'],
+        overpassTags: ['amenity=restaurant', 'amenity=cafe'],
+        label: 'restaurants',
+      },
+      {
+        kind: 'hotels',
+        categories: ['accommodation.hotel', 'accommodation.guest_house'],
+        overpassTags: ['tourism=hotel', 'tourism=guest_house'],
+        label: 'hotels',
+      },
+      {
+        kind: 'heritage',
+        categories: ['tourism.sights', 'entertainment.museum'],
+        overpassTags: ['historic=monument', 'tourism=museum', 'tourism=attraction'],
+        label: 'heritage and monuments',
+      },
+    ];
+
+    for (const kindIntent of fallbackKinds) {
+      const partial = await resolveNearbyPlaceLinks(location, kindIntent, 3);
+      merged = mergeUniqueLinks(merged, partial).sort((a, b) => extractDistanceKm(a) - extractDistanceKm(b));
+      if (merged.length >= desiredCount) {
+        break;
+      }
+    }
+  }
+
+  return merged.slice(0, desiredCount);
 }
 
 router.post('/', async (req, res) => {
@@ -1208,24 +1518,63 @@ router.post('/', async (req, res) => {
         return res.json(response);
       }
 
-      const placeLinks = await fetchNearbyPlaces(location, nearbyPlaceIntent.categories, 6);
+      const desiredCount = nearbyPlaceIntent.kind === 'all' ? 7 : 5;
+      const placeLinks = await resolveNearbyPlaceLinks(location, nearbyPlaceIntent, desiredCount);
+
       const locationContextLinks = await resolveLocationContextLinks(query, location);
-      const links = [...locationContextLinks.slice(0, 1), ...placeLinks].slice(0, 7);
+      const links = placeLinks.length > 0 ? placeLinks.slice(0, desiredCount) : [];
+
+      const structured =
+        links.length > 0
+          ? [
+              ...buildStructuredSections({
+                language: answerLanguage,
+                query,
+                links,
+                reason: 'with_links',
+              }),
+              ...(locationContextLinks[0]
+                ? [
+                    {
+                      title: answerLanguage === 'hi' ? 'Nearest Stadium Context' : 'Nearest Stadium Context',
+                      items: [
+                        answerLanguage === 'hi'
+                          ? `${locationContextLinks[0].label} (${locationContextLinks[0].subtitle ?? 'nearby'})`
+                          : `${locationContextLinks[0].label} (${locationContextLinks[0].subtitle ?? 'nearby'})`,
+                      ],
+                    },
+                  ]
+                : []),
+            ]
+          : [
+              {
+                title: answerLanguage === 'hi' ? 'Nearby Results' : 'Nearby Results',
+                items:
+                  answerLanguage === 'hi'
+                    ? [
+                        `Mujhe aapki location ke paas ${nearbyPlaceIntent.label} ka strong in-app match nahi mila.`,
+                        'Aap nearby stadiums, top players, ya sports pages explore kar sakte hain.',
+                      ]
+                    : [
+                        `I could not find strong in-app ${nearbyPlaceIntent.label} matches near your location.`,
+                        'You can still explore nearby stadium pages, top players, or sports pages from here.',
+                      ],
+              },
+            ];
 
       const response: ChatResponse = {
         reply:
-          answerLanguage === 'hi'
-            ? `Yeh aapki current location ke paas ke ${nearbyPlaceIntent.label} hain. Main context ko nearest stadium area tak hi limited rakh raha hoon.`
-            : `These are ${nearbyPlaceIntent.label} near your current location. I have kept the context restricted to your nearest stadium area.`,
+          links.length > 0
+            ? answerLanguage === 'hi'
+              ? `Yeh aapki current location ke paas ke ${nearbyPlaceIntent.label} hain. Main context ko nearest stadium area tak hi limited rakh raha hoon.`
+              : `These are ${nearbyPlaceIntent.label} near your current location. I have kept the context restricted to your nearest stadium area.`
+            : answerLanguage === 'hi'
+              ? `Aapki location ke paas ${nearbyPlaceIntent.label} ke results kam mil rahe hain. Aap broader nearby query try kar sakte hain.`
+              : `I am seeing limited ${nearbyPlaceIntent.label} results near your location. You can try a broader nearby query.`,
         action: links.length > 0 ? 'show_links' : 'answer_only',
         links,
         clarifications: [],
-        structured: buildStructuredSections({
-          language: answerLanguage,
-          query,
-          links,
-          reason: 'with_links',
-        }),
+        structured,
         meta: {
           query,
           language: answerLanguage,
@@ -1453,7 +1802,8 @@ router.post('/', async (req, res) => {
       const llmSections = profileQuery ? await callSarvamEntityProfileSections(query, answerLanguage) : null;
       const wikiName = extracted?.entityNameEnglish || extracted?.entityName || inferredName;
       const wikiLink = wikiName ? buildWikipediaLink(wikiName, answerLanguage, extracted?.entityType ?? null) : null;
-      const linksBase = [...locationContextLinks.slice(0, 1), ...(wikiLink ? [wikiLink] : [])];
+      const guessedProfileEntityType = inferProfileEntityType(query, extracted?.entityType ?? null);
+      const linksBase = profileQuery ? (wikiLink ? [wikiLink] : []) : [...locationContextLinks.slice(0, 1), ...(wikiLink ? [wikiLink] : [])];
       const links = linksBase;
       const response: ChatResponse = {
         reply: sanitizeModelOutput(
@@ -1470,12 +1820,14 @@ router.post('/', async (req, res) => {
         structured:
           llmSections && llmSections.length > 0
             ? llmSections
-            : buildStructuredSections({
-                language: answerLanguage,
-                query,
-                links,
-                reason: 'relevant_no_match',
-              }),
+            : profileQuery
+              ? buildProfileFallbackSections(answerLanguage, guessedProfileEntityType, wikiName || inferredName || query, Boolean(wikiLink))
+              : buildStructuredSections({
+                  language: answerLanguage,
+                  query,
+                  links,
+                  reason: 'relevant_no_match',
+                }),
         meta: {
           query,
           language: answerLanguage,

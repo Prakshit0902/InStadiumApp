@@ -117,6 +117,15 @@ type RuntimeSpeechModule = {
   requestPermissionsAsync: () => Promise<{ granted?: boolean }>;
   start: (options?: Record<string, unknown>) => void;
   stop: () => void;
+  addListener: (
+    eventName: 'start' | 'end' | 'result' | 'error',
+    listener: (event?: {
+      results?: Array<{ transcript?: string }>;
+      isFinal?: boolean;
+      error?: string;
+      message?: string;
+    }) => void
+  ) => { remove: () => void };
 };
 
 function getSpeechModule(): RuntimeSpeechModule | null {
@@ -143,9 +152,46 @@ export function FloatingChatbot() {
   const [locationPrompted, setLocationPrompted] = useState(false);
   const keyboardOffset = useRef(new Animated.Value(0)).current;
   const speechModule = getSpeechModule();
-  const voiceAvailable = !!speechModule;
+  const voiceAvailable = Boolean(speechModule?.start && speechModule?.stop && speechModule?.addListener);
 
   const disabledSend = !draft.trim() || loading;
+
+  useEffect(() => {
+    if (!speechModule || !voiceAvailable) {
+      return;
+    }
+
+    const onStart = speechModule.addListener('start', () => {
+      setRecognizing(true);
+      setError(null);
+    });
+
+    const onEnd = speechModule.addListener('end', () => {
+      setRecognizing(false);
+    });
+
+    const onResult = speechModule.addListener('result', (event) => {
+      const transcript = event?.results?.[0]?.transcript?.trim();
+      if (!transcript) {
+        return;
+      }
+
+      setDraft(transcript);
+    });
+
+    const onError = speechModule.addListener('error', (event) => {
+      setRecognizing(false);
+      const message = event?.message || event?.error || 'Voice recognition failed. Please try again.';
+      setError(String(message));
+    });
+
+    return () => {
+      onStart.remove();
+      onEnd.remove();
+      onResult.remove();
+      onError.remove();
+    };
+  }, [speechModule, voiceAvailable]);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -309,7 +355,6 @@ export function FloatingChatbot() {
 
     if (recognizing) {
       speechModule.stop();
-      setRecognizing(false);
       return;
     }
 
@@ -325,8 +370,7 @@ export function FloatingChatbot() {
       continuous: false,
       requiresOnDeviceRecognition: false,
     });
-    setRecognizing(true);
-    setError('Listening started. If transcript does not appear, type your query and send.');
+    setError('Listening... Speak now. Your transcript will appear in the input box.');
   }, [recognizing, speechModule]);
 
   const lastThreeMessages = useMemo(() => messages.slice(-10), [messages]);
