@@ -302,15 +302,37 @@ router.get('/download/stadium/:stadiumId.png', async (req, res) => {
 
   try {
     const code = buildQrCodeValue(stadiumId);
-    const mapping = await prisma.qRMapping.findUnique({
-      where: { qrCode: code },
-    });
-
-    if (!mapping) {
-      return res.status(404).json({ error: 'QR mapping not found for stadium' });
+    const stadium = await prisma.stadium.findUnique({ where: { id: stadiumId }, select: { id: true } });
+    if (!stadium) {
+      return res.status(404).json({ error: 'Stadium not found' });
     }
 
-    return res.redirect(302, `/api/qr/download/${encodeURIComponent(mapping.qrCode)}.png`);
+    const appDeepLink = buildAppDeepLink(stadiumId);
+    const scanUrl = buildScanUrl(code);
+    const qrPayload = scanUrl || appDeepLink;
+
+    await prisma.qRMapping.upsert({
+      where: { qrCode: code },
+      create: {
+        qrCode: code,
+        stadiumId,
+        appDeepLink,
+        scanUrl,
+        qrPayload,
+        qrImageData: await QRCode.toDataURL(qrPayload, {
+          margin: 1,
+          width: 480,
+          errorCorrectionLevel: 'M',
+        }),
+      },
+      update: {
+        appDeepLink,
+        scanUrl,
+        qrPayload,
+      },
+    });
+
+    return res.redirect(302, `/api/qr/download/${encodeURIComponent(code)}.png`);
   } catch (error) {
     console.error('GET /api/qr/download/stadium/:stadiumId.png failed:', error);
     return res.status(500).json({ error: 'Failed to download stadium QR image' });
