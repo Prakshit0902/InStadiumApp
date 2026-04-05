@@ -495,8 +495,3 @@ npm run backend:dev
 - Detailed technical reference: pending (reserved sections included)
 
 ---
-
-If you want, the next documentation iteration can add a formal C4 pack (Context, Container, Component, Code-level), API contract tables, and production runbook templates directly into this README or split into a `docs/` folder.
-#   I n S t a d i u m A p p 
- 
- 
