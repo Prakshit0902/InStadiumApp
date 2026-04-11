@@ -12,6 +12,7 @@ import {
   TimelineItem,
 } from './types';
 import { buildRuleSections, getApiBaseUrl, getDistanceKm, parseArray } from './utils';
+import { mergeWithLocalContent } from './stadium-content-data';
 import { fallbackFeaturedStadiums, nearbyStadiums as landingNearbyStadiums } from '@/components/landing/data';
 
 function decodeParam(value: string | undefined) {
@@ -110,7 +111,7 @@ export function useStadiumDetail(stadiumId: string | undefined) {
           return;
         }
 
-        const fallbackDetail = createFallbackStadiumDetail(normalizedStadiumId);
+        const fallbackDetail = mergeWithLocalContent(createFallbackStadiumDetail(normalizedStadiumId));
         setError(null);
         setStadium(fallbackDetail);
         setAllStadiums(toFallbackCards());
@@ -142,13 +143,13 @@ export function useStadiumDetail(stadiumId: string | undefined) {
           return;
         }
 
-        setStadium(detailData);
+        setStadium(mergeWithLocalContent(detailData));
         setAllStadiums(Array.isArray(listData) ? listData : []);
         setSports(Array.isArray(sportsData) ? sportsData : []);
         setPlayers(Array.isArray(playersData) && playersData.length > 0 ? playersData : detailData.players || []);
       } catch {
         if (mounted) {
-          const fallbackDetail = createFallbackStadiumDetail(normalizedStadiumId);
+          const fallbackDetail = mergeWithLocalContent(createFallbackStadiumDetail(normalizedStadiumId));
           setError(null);
           setStadium(fallbackDetail);
           setAllStadiums(toFallbackCards());

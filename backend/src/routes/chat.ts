@@ -106,9 +106,22 @@ const DOMAIN_KEYWORDS = [
   'kahan hai',
   'jaankari',
   'jankari',
-  'jaankar',
   'khabar',
   'khiladi ka profile',
+  'hello',
+  'hi',
+  'hey',
+  'namaste',
+  'help',
+  'kaise ho',
+  'how are you',
+  'who are you',
+  'what can you do',
+  'kaun ho',
+  'kya kar sakte ho',
+  'assistant',
+  'ai bot',
+  'chatbot',
 ];
 
 const HIGH_CONFIDENCE_SCORE = 0.86;
@@ -346,6 +359,16 @@ function isDomainRelevantQuery(query: string): boolean {
   const normalized = normalizeText(query);
   if (!normalized) {
     return false;
+  }
+
+  // Common greetings and small talk are always relevant
+  const greetings = [
+    'hi', 'hello', 'hey', 'namaste', 'kaise ho', 'how are you',
+    'who are you', 'what can you do', 'kaun ho', 'kya kar sakte ho',
+    'help', 'assistant', 'bot', 'bolte ho', 'batate ho'
+  ];
+  if (greetings.some(g => normalized.startsWith(g) || normalized === g)) {
+    return true;
   }
 
   return DOMAIN_KEYWORDS.some((keyword) => normalized.includes(keyword));
@@ -676,10 +699,12 @@ async function callSarvamContextAnswer(
     .join('; ');
 
   const instruction = [
-    'You are InStadium assistant for sports app context only.',
+    'You are InStadium AI, a friendly, energetic, and expert sports assistant.',
+    'Your personality is helpful, polite, and enthusiastic about sports and stadiums.',
     `Reply language: ${language === 'hi' ? 'Hindi' : 'English'}.`,
-    'Give a concise and practical answer in 2-4 sentences.',
-    'If exact page is unavailable, still provide helpful app-context guidance.',
+    'Give a concise, practical, and friendly answer in 2-4 sentences.',
+    'You handle greetings and small talk gracefully, but always steer back to sports and the app.',
+    'CRITICAL: If the user asks about ANY other domain (e.g., cooking, programming, general history, science), politely and wittily decline, stating you are a sports specialist.',
     'Do not hallucinate IDs, routes, or unavailable facts.',
     locationContext
       ? `Strict personalization mode: keep guidance centered around this local context only: ${locationContext}.`
@@ -704,6 +729,8 @@ async function callSarvamContextAnswer(
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Sarvam context answer failed with status ${response.status}: ${errorText}`);
       return null;
     }
 
@@ -797,9 +824,11 @@ async function callSarvamExtraction(query: string, language: ChatLanguage): Prom
   const model = process.env.SARVAM_MODEL?.trim() || 'sarvam-m';
 
   const prompt = [
-    'You are an intent and entity extractor for a sports app called InStadium.',
+    'You are an intent and entity extractor for InStadium, a friendly sports companion app.',
     'Return only strict JSON with keys: intent, entityType, entityName, entityNameEnglish, isDomainRelevant, answerLanguage.',
     'intent must be one of: player_info, stadium_info, sport_info, general_query, navigation.',
+    'isDomainRelevant is true if the query is about sports, stadiums, the InStadium app itself, or is a greeting/friendly small talk.',
+    'isDomainRelevant is false only if the query is about a completely unrelated domain (medicine, law, recipes, coding, etc.).',
     'entityType must be one of: player, stadium, sport, or null.',
     'entityName must be a string or null.',
     'entityNameEnglish must be a canonical English name/transliteration (for DB lookup) or null.',
@@ -1486,6 +1515,20 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'message or transcript is required' });
     }
 
+    // High-priority intercept for greetings to ensure friendliness
+    const lowQuery = query.toLowerCase().trim().replace(/[^\p{L}\s]/gu, '');
+    const isGreeting = ['hi', 'hello', 'hey', 'namaste'].some(g => lowQuery === g || lowQuery.startsWith(g + ' '));
+    if (isGreeting) {
+       const answerLanguage = containsDevanagari(query) ? 'hi' : 'en';
+       return res.json({
+         reply: answerLanguage === 'hi' ? 'Namaste! Main InStadium AI hoon. Main players, stadiums aur sports ke baare mein aapki madad kar sakta hoon. Aaj aap kya jaanna chahte hain?' : 'Hello! I am InStadium AI. I can help you with players, stadiums, and sports information. What would you like to know about today?',
+         action: 'answer_only',
+         links: [],
+         clarifications: [],
+         meta: { query, language: answerLanguage, relevant: true, source: 'hot-intercept' }
+       });
+    }
+
     const listIntent = detectListIntent(query);
     const nearbyPlaceIntent = detectNearbyPlaceIntent(query);
     const nearestIntent = isNearestIntent(query) && /stadium|ground|cricket|football|hockey|kabaddi|sport/i.test(normalizeText(query));
@@ -1745,13 +1788,13 @@ router.post('/', async (req, res) => {
     const secondScore = second?.score ?? 0;
 
     if (!relevant) {
-      const outOfScopeReply =
-        answerLanguage === 'hi'
-          ? 'Main InStadium app ke sports context ke queries handle karta hoon. Aap player, stadium, ya sport ke bare mein pooch sakte hain.'
-          : 'I currently handle InStadium sports context queries. Ask me about players, stadiums, or sports.';
-
+      console.log(`[chat] Query deemed irrelevant: "${query}". Calling LLM for friendly redirection.`);
+      const llmReply = await callSarvamContextAnswer(query, answerLanguage, []);
+      if (!llmReply) {
+         console.warn(`[chat] LLM redirection failed for irrelevant query: "${query}". Using hardcoded fallback.`);
+      }
       const response: ChatResponse = {
-        reply: outOfScopeReply,
+        reply: sanitizeModelOutput(llmReply || 'I am InStadium AI, your dedicated sports assistant. I currently specialize in InStadium sports and stadium context. How can I help you with sports today?'),
         action: 'answer_only',
         links: [],
         clarifications: [],

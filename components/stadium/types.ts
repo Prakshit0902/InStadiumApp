@@ -31,6 +31,7 @@ export type MatchItem = {
   teams?: string;
   date?: string;
   tournament?: string;
+  bmsUrl?: string; // Direct BookMyShow event page URL (hardcoded when BMS lists the match)
 };
 
 export type NearbyPlace = {

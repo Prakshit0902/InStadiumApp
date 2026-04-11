@@ -1,6 +1,7 @@
 export type SportRule = {
   title: string;
   content: string;
+  videoUrl?: string;
 };
 
 export type SportTimelineEvent = {
@@ -17,6 +18,10 @@ export type SportMetadata = {
   tags: string[];
   history: SportTimelineEvent[];
   rulebook: SportRule[];
+  fullGuideUrl?: string;
+  fullGuideCourtesy?: string;
+  federationUrl: string;
+  heroImage?: string;
 };
 
 export const SPORTS_HUB_DATA: Record<string, { description: string; rulebook: SportRule[] }> = {
@@ -27,22 +32,26 @@ export const SPORTS_HUB_DATA: Record<string, { description: string; rulebook: Sp
       {
         title: 'The Pitch',
         content:
-          "A central 22-yard strip where the main action happens. It's carefully curated to influence the ball's movement-some favor fast bowlers with bounce, while others assist spinners as the match progresses.",
+          "A central 22-yard strip where the main action happens. It's carefully curated to influence the ball's movement—some favor fast bowlers with bounce, while others assist spinners as the match progresses.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775395348/The_Pitch_wlpzie.mp4',
       },
       {
         title: 'The Over',
         content:
           'A set of six legal deliveries bowled by a single player from one end of the pitch. After an over, the bowling end changes, and a different player takes over, ensuring a strategic rotation of pace and guile.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775395338/The_Over_mfjbuh.mp4',
       },
       {
         title: 'Wickets',
         content:
           'The primary objective for bowlers. There are 10 ways to get a batsman out, including being bowled (hitting the stumps), caught, Leg Before Wicket (LBW), or run out while trying to complete a run.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775395337/Wickets_y5ts27.mp4',
       },
       {
         title: 'Scoring Runs',
         content:
           'Batsmen score runs by hitting the ball and running between the wickets. Hitting the ball to the boundary scores 4 runs, while clearing the rope on the full earns a maximum of 6 runs.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775395328/Scoring_Runs_l4pi8a.mp4',
       },
     ],
   },
@@ -54,21 +63,25 @@ export const SPORTS_HUB_DATA: Record<string, { description: string; rulebook: Sp
         title: 'The Goal',
         content:
           "The main objective is to drive the ball into the opponent's net. A goal is scored when the entire ball crosses the goal line between the posts and under the crossbar.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775415708/The_Goal_il3bys.mp4',
       },
       {
         title: 'Fouls & Cards',
         content:
           'Physical contact is regulated. Reckless play or unsporting behavior results in a Yellow Card (warning) or a Red Card (ejection). Professional fouls can lead to direct free kicks or penalties.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775415693/Fouls_iwp0sr.mp4',
       },
       {
         title: 'Offside Rule',
         content:
           "A strategic rule preventing 'goal-hanging'. An attacking player must have at least two opponents (usually the keeper and one defender) between them and the goal line when the ball is played to them.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775415695/Offside_Rule_lede0e.mp4',
       },
       {
         title: 'Corner Kicks',
         content:
           "Awarded when the defending team is the last to touch the ball before it crosses their own goal line (excluding goals). It's a prime opportunity for set-piece specialists to create scoring chances.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775415696/Corner_Kicks_mxxpx4.mp4',
       },
     ],
   },
@@ -80,21 +93,25 @@ export const SPORTS_HUB_DATA: Record<string, { description: string; rulebook: Sp
         title: 'The Raid',
         content:
           "An individual attacker (Raider) enters the opponent's half, chanting 'Kabaddi' without breaking their breath. They must touch at least one defender and return to their own half safely.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775828648/The_Raid_ppgzbh.mp4',
       },
       {
         title: 'Touch & Tag',
         content:
           "Points are scored for every defender the raider touches before returning. Defenders are 'out' and must leave the mat until a teammate scores a point to revive them.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775828647/Touch_Tag_xlwhzh.mp4',
       },
       {
         title: 'The Tackle',
         content:
           'Defenders (Antis) work together to trap the raider and prevent them from reaching the midline. A successful tackle earns the defending team a point and revives one of their own players.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775828648/The_Tackle_cooni7.mp4',
       },
       {
         title: 'Bonus Point',
         content:
           "A raider can earn an extra point by crossing the 'Bonus Line' when there are 6 or 7 defenders active on the mat, even if they don't touch any opponent.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775828646/Bonus_Point_buabw1.mp4',
       },
     ],
   },
@@ -105,22 +122,26 @@ export const SPORTS_HUB_DATA: Record<string, { description: string; rulebook: Sp
       {
         title: 'The Serve',
         content:
-          "Must be delivered underhand and diagonally into the opponent's service court. In professional play, the shuttle must be hit from below the server's waist height.",
+          "Must be hit underhand and diagonally into the opponent's service court. In professional play, the shuttle must be hit from below the server's waist height.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887071/The_Serve_gcwufh.mp4',
       },
       {
         title: 'Rally Scoring',
         content:
-          'A point is won on every serve, regardless of who is serving. Matches are usually best of three games, with each game played to 21 points (must lead by 2, capped at 30).',
+          'A point is won on every serve, regardless of who is serving. Matches are usually best of three games, with each game played to 21 points.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887070/Rally_Scoring_anf646.mp4',
       },
       {
         title: 'Let',
         content:
-          'A call made by the umpire to halt play when an unforeseen accident or distraction occurs. The point is replayed, and no change is made to the score or service order.',
+          'A call made by the umpire to halt play when an unforeseen accident or distraction occurs. The point is replayed.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887072/Let_kuljld.mp4',
       },
       {
         title: 'Faults',
         content:
-          'Includes the shuttle landing outside boundaries, failing to pass over the net, touching the net with the racket or body, or being hit twice by the same player/team.',
+          'Includes the shuttle landing outside boundaries, failing to pass over the net, or touching the net with the racket or body.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887070/Faults_fmxiam.mp4',
       },
     ],
   },
@@ -132,21 +153,25 @@ export const SPORTS_HUB_DATA: Record<string, { description: string; rulebook: Sp
         title: 'Game/Set/Match',
         content:
           "The scoring hierarchy. Four points win a game (15, 30, 40, Game), six games win a set, and two or three sets win the match. 'Deuce' occurs at 40-40, requiring a two-point lead.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887287/GameSetMatch_cu7iir.mp4',
       },
       {
         title: 'The Serve',
         content:
           "Starting the point from behind the baseline. If it hits the net but lands in the correct service box, it's a 'Let' (replay). Missing twice results in a Double Fault and loss of the point.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887285/The_Serve_mq2jda.mp4',
       },
       {
         title: 'The Deuce',
         content:
           "A Tie at 40-all. A player must win two consecutive points (Advantage and then Game Point) to win the game. This creates the most high-pressure moments in the sport.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887286/Deuce_s3ab9y.mp4',
       },
       {
         title: 'Baseline Play',
         content:
           'The strategic exchange of groundstrokes from the back of the court. Players use topspin, slice, and varying depths to outmaneuver opponents and create winning opportunities.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887285/Baseline_Play_vjange.mp4',
       },
     ],
   },
@@ -157,22 +182,26 @@ export const SPORTS_HUB_DATA: Record<string, { description: string; rulebook: Sp
       {
         title: 'Penalty Corner',
         content:
-          "The most vital set-piece, awarded for defensive fouls inside the circle. The ball is pushed from the baseline to the top of the 'D', followed by a high-speed drag-flick or hit toward the goal.",
+          'Awarded for defensive fouls inside the circle. The ball is pushed from the backline to attackers at the top of the circle.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775888147/Penalty_Corner_qursvq.mp4',
       },
       {
         title: 'The Cards',
         content:
-          'Disciplinary actions: Green Card (2-minute suspension), Yellow Card (minimum 5-minute suspension), and Red Card (permanent removal from the match).',
+          'Green (2 min suspension), Yellow (5-10 min suspension), and Red (Permanent exclusion) are used for discipline.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775888143/The_Cards_gvz9id.mp4',
       },
       {
         title: 'No-Feet Rule',
         content:
-          'Only the goalkeeper (within the circle) can use their body or feet to stop the ball. For outfield players, any contact between the ball and feet is a foul, often resulting in a change of possession.',
+          'Players (except goalkeepers inside the circle) are not allowed to use their feet or any part of their body to play the ball.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775888161/No_Feet_Rule_getc6d.mp4',
       },
       {
         title: 'Dangerous Play',
         content:
-          "Refers to lifting the ball into players or hitting it wildly. High balls must be controlled correctly, and 'sticks' (lifting the stick above head height) is restricted for safety.",
+          'Includes lifting the ball into an opponent, high-sticking, or any action that threatens player safety.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775888142/Dangerous_Play_xw8lqt.mp4',
       },
     ],
   },
@@ -194,12 +223,37 @@ export const ADDITIONAL_SPORTS_DATA: Record<string, SportMetadata> = {
       { year: '2011', event: 'World Cup Glory at Home', description: "MS Dhoni's iconic six sealed India's second World Cup title in Mumbai." },
     ],
     rulebook: [
-      { title: 'The Playing Field', content: 'Played on an oval field with a 22-yard pitch at its center. The boundary defines the limit of the playing area.' },
-      { title: 'Scoring System', content: 'Runs are scored by running between wickets or hitting boundaries (4s and 6s).' },
-      { title: 'Bowling & Fielding', content: 'Six balls make an over. Fielders aim to stop runs and take wickets through catches, run-outs, or bowling out the batsman.' },
-      { title: "The Umpire's Call", content: 'Two on-field umpires make decisions, supported by a TV umpire for complex reviews (DRS).' },
+      {
+        title: 'The Pitch',
+        content:
+          "A central 22-yard strip where the main action happens. It's carefully curated to influence the ball's movement—some favor fast bowlers with bounce, while others assist spinners as the match progresses.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775395348/The_Pitch_wlpzie.mp4',
+      },
+      {
+        title: 'The Over',
+        content:
+          'A set of six legal deliveries bowled by a single player from one end of the pitch. After an over, the bowling end changes, and a different player takes over, ensuring a strategic rotation of pace and guile.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775395338/The_Over_mfjbuh.mp4',
+      },
+      {
+        title: 'Wickets',
+        content:
+          'The primary objective for bowlers. There are 10 ways to get a batsman out, including being bowled (hitting the stumps), caught, Leg Before Wicket (LBW), or run out while trying to complete a run.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775395337/Wickets_y5ts27.mp4',
+      },
+      {
+        title: 'Scoring Runs',
+        content:
+          'Batsmen score runs by hitting the ball and running between the wickets. Hitting the ball to the boundary scores 4 runs, while clearing the rope on the full earns a maximum of 6 runs.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775395328/Scoring_Runs_l4pi8a.mp4',
+      },
     ],
+    fullGuideUrl: 'https://www.youtube.com/watch?v=VwII4y5vpyU',
+    fullGuideCourtesy: 'wikiHow',
+    federationUrl: 'https://www.bcci.tv/',
+    heroImage: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?q=80&w=1000&auto=format&fit=crop',
   },
+
   football: {
     id: 'football',
     name: 'Football',
@@ -215,18 +269,43 @@ export const ADDITIONAL_SPORTS_DATA: Record<string, SportMetadata> = {
       { year: '2013', event: 'ISL Foundation', description: 'The Indian Super League was founded, revolutionizing professional football in the country.' },
     ],
     rulebook: [
-      { title: 'The Goal', content: 'Scored when the ball completely crosses the goal line between the posts.' },
-      { title: 'Offside Rule', content: "Prevents attackers from gaining an unfair advantage near the opponent's goal." },
-      { title: 'Fouls & Misconduct', content: 'Regulated by yellow and red cards. Direct or indirect free kicks are awarded for violations.' },
-      { title: 'Duration', content: 'A standard match consists of two 45-minute halves with a 15-minute break.' },
+      {
+        title: 'The Goal',
+        content:
+          "The main objective is to drive the ball into the opponent's net. A goal is scored when the entire ball crosses the goal line between the posts and under the crossbar.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775415708/The_Goal_il3bys.mp4',
+      },
+      {
+        title: 'Fouls & Cards',
+        content:
+          'Physical contact is regulated. Reckless play or unsporting behavior results in a Yellow Card (warning) or a Red Card (ejection). Professional fouls can lead to direct free kicks or penalties.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775415693/Fouls_iwp0sr.mp4',
+      },
+      {
+        title: 'Offside Rule',
+        content:
+          "A strategic rule preventing 'goal-hanging'. An attacking player must have at least two opponents (usually the keeper and one defender) between them and the goal line when the ball is played to them.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775415695/Offside_Rule_lede0e.mp4',
+      },
+      {
+        title: 'Corner Kicks',
+        content:
+          "Awarded when the defending team is the last to touch the ball before it crosses their own goal line (excluding goals). It's a prime opportunity for set-piece specialists to create scoring chances.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775415696/Corner_Kicks_mxxpx4.mp4',
+      },
     ],
+    fullGuideUrl: 'https://www.youtube.com/watch?v=qknP-E-vPQ4',
+    fullGuideCourtesy: 'wikiHow',
+    federationUrl: 'https://www.the-aiff.com/',
+    heroImage: 'https://images.unsplash.com/photo-1518605368461-1e1e38ce7058?q=80&w=1000&auto=format&fit=crop',
   },
+
   kabaddi: {
     id: 'kabaddi',
     name: 'Kabaddi',
-    description: 'An indigenous tactical battle of strength and agility.',
+    description: 'An ancient indigenous tactical battle of strength and agility.',
     longDescription:
-      'Kabaddi is an ancient Indian sport that combines wrestling, rugby, and tag. It requires immense physical strength, tactical intelligence, and lung capacity as raiders must hold their breath.',
+      'Kabaddi is an ancient Indian sport that combines wrestling, rugby, and tag. It requires immense physical strength, tactical intelligence, and lung capacity as raiders must hold their breath while tagging opponents and returning to their half.',
     tags: ['Tactical', 'Strength', 'Indigenous'],
     history: [
       { year: 'Ancient', event: 'Origins', description: 'Tracing back to Vedic India, used as a form of physical combat training.' },
@@ -235,12 +314,37 @@ export const ADDITIONAL_SPORTS_DATA: Record<string, SportMetadata> = {
       { year: '2014', event: 'Pro Kabaddi League', description: 'The PKL was launched, bringing the sport into the modern commercial era.' },
     ],
     rulebook: [
-      { title: 'The Raid', content: "A raider enters the opponent's court chanting 'Kabaddi' and tries to touch defenders." },
-      { title: 'Defense', content: 'Defenders work as a chain to capture the raider and prevent them from returning.' },
-      { title: 'Lona', content: "Awarded when an entire team is declared 'out', giving the opponents two extra points." },
-      { title: 'Revival', content: 'Players are revived in the order they were sent out when their team scores a point.' },
+      {
+        title: 'The Raid',
+        content:
+          "An individual attacker (Raider) enters the opponent's half, chanting 'Kabaddi' without breaking their breath. They must touch at least one defender and return to their own half safely.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775828648/The_Raid_ppgzbh.mp4',
+      },
+      {
+        title: 'Touch & Tag',
+        content:
+          "Points are scored for every defender the raider touches before returning. Defenders are 'out' and must leave the mat until a teammate scores a point to revive them.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775828647/Touch_Tag_xlwhzh.mp4',
+      },
+      {
+        title: 'The Tackle',
+        content:
+          'Defenders (Antis) work together to trap the raider and prevent them from reaching the midline. A successful tackle earns the defending team a point and revives one of their own players.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775828648/The_Tackle_cooni7.mp4',
+      },
+      {
+        title: 'Bonus Point',
+        content:
+          "A raider earns an extra point by crossing the 'Bonus Line' when there are 6 or 7 defenders active on the mat, even if they don't touch any opponent.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775828646/Bonus_Point_buabw1.mp4',
+      },
     ],
+    fullGuideUrl: 'https://youtu.be/ybdGREjvluU',
+    fullGuideCourtesy: 'wikiHow',
+    federationUrl: 'http://www.indiankabaddi.org/',
+    heroImage: 'https://images.unsplash.com/photo-1589182337358-2cb63099350c?q=80&w=1000&auto=format&fit=crop',
   },
+
   badminton: {
     id: 'badminton',
     name: 'Badminton',
@@ -255,12 +359,37 @@ export const ADDITIONAL_SPORTS_DATA: Record<string, SportMetadata> = {
       { year: '2016', event: 'Olympic Silver', description: 'PV Sindhu became the first Indian woman to win an Olympic silver medal.' },
     ],
     rulebook: [
-      { title: 'Service', content: 'Must be hit underhand and diagonally across the net.' },
-      { title: 'Scoring', content: 'Best of three games to 21 points. A point is scored on every rally.' },
-      { title: 'Faults', content: 'Includes touching the net, hitting the shuttle out, or a player hitting it twice.' },
-      { title: 'The Let', content: 'Called for accidental interference or if the shuttle gets stuck in the net.' },
+      {
+        title: 'The Serve',
+        content:
+          "Must be hit underhand and diagonally into the opponent's service court. In professional play, the shuttle must be hit from below the server's waist height.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887071/The_Serve_gcwufh.mp4',
+      },
+      {
+        title: 'Rally Scoring',
+        content:
+          'A point is won on every serve, regardless of who is serving. Matches are usually best of three games, with each game played to 21 points.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887070/Rally_Scoring_anf646.mp4',
+      },
+      {
+        title: 'Let',
+        content:
+          'A call made by the umpire to halt play when an unforeseen accident or distraction occurs. The point is replayed.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887072/Let_kuljld.mp4',
+      },
+      {
+        title: 'Faults',
+        content:
+          'Includes the shuttle landing outside boundaries, failing to pass over the net, or touching the net with the racket or body.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887070/Faults_fmxiam.mp4',
+      },
     ],
+    fullGuideUrl: 'https://youtu.be/tAS7rOKtpgQ',
+    fullGuideCourtesy: 'Mr. Animate',
+    federationUrl: 'https://www.badmintonindia.org/',
+    heroImage: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=1000&auto=format&fit=crop',
   },
+
   tennis: {
     id: 'tennis',
     name: 'Tennis',
@@ -275,12 +404,37 @@ export const ADDITIONAL_SPORTS_DATA: Record<string, SportMetadata> = {
       { year: '2015', event: "Sania Mirza's Peak", description: "Sania Mirza became the World No. 1 in women's doubles." },
     ],
     rulebook: [
-      { title: 'The Serve', content: "Starts behind the baseline. A 'let' is called if the ball hits the net and lands in." },
-      { title: 'Deuce', content: 'A tie at 40-40 requires winning two consecutive points to take the game.' },
-      { title: 'Sets & Games', content: 'Matches are usually best of 3 or 5 sets, with 6 games to win a set.' },
-      { title: 'Tie-Break', content: 'Played at 6-6 in a set to decide the winner by reaching 7 points first.' },
+      {
+        title: 'Game/Set/Match',
+        content:
+          "The scoring hierarchy. Four points win a game (15, 30, 40, Game), six games win a set, and two or three sets win the match. 'Deuce' occurs at 40-40, requiring a two-point lead.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887287/GameSetMatch_cu7iir.mp4',
+      },
+      {
+        title: 'The Serve',
+        content:
+          "Starting the point from behind the baseline. If it hits the net but lands in the correct service box, it's a 'Let' (replay). Missing twice results in a Double Fault and loss of the point.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887285/The_Serve_mq2jda.mp4',
+      },
+      {
+        title: 'The Deuce',
+        content:
+          "A Tie at 40-all. A player must win two consecutive points (Advantage and then Game Point) to win the game. This creates the most high-pressure moments in the sport.",
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887286/Deuce_s3ab9y.mp4',
+      },
+      {
+        title: 'Baseline Play',
+        content:
+          'The strategic exchange of groundstrokes from the back of the court. Players use topspin, slice, and varying depths to outmaneuver opponents and create winning opportunities.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775887285/Baseline_Play_vjange.mp4',
+      },
     ],
+    fullGuideUrl: 'https://youtu.be/zcagGHQhcMI',
+    fullGuideCourtesy: 'wikiHow',
+    federationUrl: 'https://www.aitatennis.com/',
+    heroImage: 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=1000&auto=format&fit=crop',
   },
+
   hockey: {
     id: 'hockey',
     name: 'Hockey',
@@ -295,13 +449,38 @@ export const ADDITIONAL_SPORTS_DATA: Record<string, SportMetadata> = {
       { year: '2021', event: 'Tokyo Bronze', description: 'The Indian team ended a 41-year Olympic medal drought with a bronze.' },
     ],
     rulebook: [
-      { title: 'Penalty Corner', content: 'Awarded for defensive fouls in the circle. A crucial scoring opportunity.' },
-      { title: 'The Sticks', content: 'Players can only use the flat side of the stick to play the ball.' },
-      { title: 'No Body Contact', content: 'Players cannot use their feet or body to stop or move the ball.' },
-      { title: 'Green/Yellow Cards', content: "Time-bound suspensions for fouls, maintaining the game's high intensity." },
+      {
+        title: 'Penalty Corner',
+        content:
+          'Awarded for defensive fouls inside the circle. The ball is pushed from the backline to attackers at the top of the circle.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775888147/Penalty_Corner_qursvq.mp4',
+      },
+      {
+        title: 'The Cards',
+        content:
+          'Green (2 min suspension), Yellow (5-10 min suspension), and Red (Permanent exclusion) are used for discipline.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775888143/The_Cards_gvz9id.mp4',
+      },
+      {
+        title: 'No-Feet Rule',
+        content:
+          'Players (except goalkeepers inside the circle) are not allowed to use their feet or any part of their body to play the ball.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775888161/No_Feet_Rule_getc6d.mp4',
+      },
+      {
+        title: 'Dangerous Play',
+        content:
+          'Includes lifting the ball into an opponent, high-sticking, or any action that threatens player safety.',
+        videoUrl: 'https://res.cloudinary.com/daud2uqqf/video/upload/v1775888142/Dangerous_Play_xw8lqt.mp4',
+      },
     ],
+    fullGuideUrl: 'https://youtu.be/KUnLgiX44BQ',
+    fullGuideCourtesy: 'wikiHow',
+    federationUrl: 'https://www.hockeyindia.org/',
+    heroImage: 'https://images.unsplash.com/photo-1590483259972-e1d5ca4431e2?q=80&w=1000&auto=format&fit=crop',
   },
 };
+
 
 export function toSportSlug(name: string) {
   return (name || '').trim().toLowerCase();

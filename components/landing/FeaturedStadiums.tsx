@@ -62,7 +62,7 @@ function FeaturedStadiumsBase({ horizontalPadding, featured, onViewAllPress, onS
             style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
             android_ripple={{ color: 'rgba(129, 0, 0, 0.10)' }}>
             <Image
-              source={getLocalStadiumImage(item.image)}
+              source={item.image}
               style={styles.image}
               contentFit="cover"
               cachePolicy="memory-disk"

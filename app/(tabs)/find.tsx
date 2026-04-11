@@ -126,7 +126,7 @@ export default function FindStadiumScreen() {
   }, [location, stadiums]);
 
   return (
-    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
       <View style={styles.content}>
         <Text style={styles.kicker}>Nearby</Text>
         <Text style={styles.title}>Find Stadium</Text>
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingTop: 10,
-    paddingBottom: 20,
+    paddingBottom: 10,
     gap: 10,
   },
   card: {

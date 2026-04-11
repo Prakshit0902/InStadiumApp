@@ -7,6 +7,8 @@ type SearchSuggestion = {
   id: string;
   name: string;
   city: string;
+  type?: 'stadium' | 'sport' | 'player';
+  matchTerm?: string;
 };
 
 type Props = {
@@ -18,7 +20,6 @@ type Props = {
   filterOptions: string[];
   selectedFilter: string;
   onFilterSelect: (filter: string) => void;
-  onChipPress?: (chip: 'Near me' | 'Live events' | 'Top rated') => void;
 };
 
 function NativeSearchStripBase({
@@ -30,11 +31,8 @@ function NativeSearchStripBase({
   filterOptions,
   selectedFilter,
   onFilterSelect,
-  onChipPress,
 }: Props) {
   const [showFilters, setShowFilters] = useState(false);
-
-  const quickChips: Array<'Near me' | 'Live events' | 'Top rated'> = ['Near me', 'Live events', 'Top rated'];
 
   return (
     <View style={[styles.section, { paddingHorizontal: horizontalPadding }]}> 
@@ -78,26 +76,23 @@ function NativeSearchStripBase({
               onPress={() => onSelectSearchResult(item)}
               style={({ pressed }) => [styles.dropdownItem, pressed && styles.pressed]}>
               <View style={styles.dropdownTextWrap}>
-                <Text style={styles.dropdownName}>{item.name}</Text>
-                <Text style={styles.dropdownCity}>{item.city}</Text>
+                <View style={styles.dropdownTitleBar}>
+                  <Text style={styles.dropdownName} numberOfLines={1}>{item.name}</Text>
+                  {item.type && item.type !== 'stadium' && (
+                    <View style={[styles.typeBadge, item.type === 'player' ? styles.playerBadge : styles.sportBadge]}>
+                      <Text style={styles.typeBadgeText}>{item.type}</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.dropdownCity}>
+                  {item.matchTerm ? `Matches: ${item.matchTerm}` : item.city}
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={15} color={landingColors.subtle} />
+              <Ionicons name="chevron-forward" size={14} color={landingColors.subtle} style={{ opacity: 0.5 }} />
             </Pressable>
           ))}
         </View>
       ) : null}
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsWrap}>
-        {quickChips.map((chip) => (
-          <Pressable
-            key={chip}
-            onPress={() => onChipPress?.(chip)}
-            android_ripple={{ color: 'rgba(129, 0, 0, 0.10)' }}
-            style={({ pressed }) => [styles.chip, pressed && styles.pressed]}>
-            <Text style={styles.chipText}>{chip}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
     </View>
   );
 }
@@ -172,41 +167,48 @@ const styles = StyleSheet.create({
   },
   dropdownTextWrap: {
     flex: 1,
+    gap: 2,
+  },
+  dropdownTitleBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   dropdownName: {
     color: landingColors.plum,
     fontSize: 15,
-    lineHeight: 19,
     fontFamily: landingFonts.serifRegular,
+    flex: 1,
+  },
+  typeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(129,0,0,0.05)',
+  },
+  playerBadge: {
+    backgroundColor: 'rgba(0,129,64,0.08)',
+  },
+  sportBadge: {
+    backgroundColor: 'rgba(0,64,129,0.08)',
+  },
+  typeBadgeText: {
+    fontSize: 8,
+    textTransform: 'uppercase',
+    color: landingColors.rose,
+    fontFamily: landingFonts.sansSemiBold,
+    letterSpacing: 0.5,
   },
   dropdownCity: {
     color: landingColors.subtle,
     textTransform: 'uppercase',
     letterSpacing: 1,
     fontSize: 8,
-    marginTop: 2,
     fontFamily: landingFonts.sansSemiBold,
   },
   filterIcon: {
     opacity: 0.85,
-  },
-  chipsWrap: {
-    gap: 9,
-    paddingRight: 8,
-  },
-  chip: {
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(129, 0, 0, 0.08)',
-    backgroundColor: 'rgba(129, 0, 0, 0.08)',
-  },
-  chipText: {
-    color: landingColors.muted,
-    fontSize: 11,
-    letterSpacing: 0.6,
-    fontFamily: landingFonts.sansMedium,
   },
   pressed: {
     opacity: 0.75,

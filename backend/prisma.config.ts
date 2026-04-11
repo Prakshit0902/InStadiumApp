@@ -12,4 +12,8 @@ export default defineConfig({
     // Prisma CLI (generate/migrate/studio) reads the datasource URL from config in Prisma v7.
     url: prismaUrl,
   },
+  seed: 'tsx prisma/seed.js',
+  migrations: {
+    seed: 'tsx prisma/seed.js',
+  },
 });

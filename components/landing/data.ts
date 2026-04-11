@@ -161,3 +161,47 @@ export function getLocalStadiumImage(image?: string) {
       return fallbackDefaultImage;
   }
 }
+
+export function resolveStadiumImage(stadium: any) {
+  // 1. If the API gave us actual gallery URLs, use them
+  if (Array.isArray(stadium.galleryImages) && stadium.galleryImages.length > 0) {
+    const first = stadium.galleryImages[0];
+    let url: string | undefined;
+
+    if (typeof first === 'string') {
+      url = first;
+    } else if (first && typeof first === 'object' && typeof first.url === 'string') {
+      url = first.url;
+    }
+
+    if (url) return getLocalStadiumImage(url);
+  }
+
+  // 2. Match by exact API stadium ID (most reliable)
+  const id = (stadium.id || '').toLowerCase();
+  if (id === 'narendra-modi-stadium' || id === 'narendramodistadium') {
+    return require('@/assets/images/landing/stadiums/narendramodistadium.jpg');
+  }
+  if (id === 'wankhede-stadium' || id === 'wankhedestadium') {
+    return require('@/assets/images/landing/stadiums/wankhedestadium.jpg');
+  }
+  if (id === 'salt-lake-stadium' || id === 'saltlakestadium') {
+    return require('@/assets/images/landing/stadiums/saltlakestadium.jpg');
+  }
+  if (id === 'm-chinnaswamy-stadium' || id === 'mchinnaswamystadium') {
+    return require('@/assets/images/landing/stadiums/other/chinnaswamystadium.jpg');
+  }
+  if (id.includes('patil') || id.includes('dy-patil')) {
+    return require('@/assets/images/landing/stadiums/other/dypatilstadium.jpg');
+  }
+
+  // 3. Fuzzy name match as last resort
+  const name = (stadium.name || '').toLowerCase().replace(/[^a-z]/g, '');
+  if (name.includes('wankhede')) return require('@/assets/images/landing/stadiums/wankhedestadium.jpg');
+  if (name.includes('modi')) return require('@/assets/images/landing/stadiums/narendramodistadium.jpg');
+  if (name.includes('saltlake') || name.includes('saltsalt')) return require('@/assets/images/landing/stadiums/saltlakestadium.jpg');
+  if (name.includes('chinnaswamy')) return require('@/assets/images/landing/stadiums/other/chinnaswamystadium.jpg');
+  if (name.includes('patil')) return require('@/assets/images/landing/stadiums/other/dypatilstadium.jpg');
+
+  return fallbackDefaultImage;
+}

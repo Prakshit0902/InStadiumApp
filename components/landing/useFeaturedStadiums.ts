@@ -4,6 +4,7 @@ import {
   getSportIconByName,
   nearbyStadiums as fallbackNearbyStadiums,
   sports as fallbackSports,
+  resolveStadiumImage,
 } from './data';
 import { ApiSportResponse, ApiStadium, NearbyStadium, SportItem, Stadium } from './types';
 
@@ -15,26 +16,7 @@ function toSlug(value: string) {
     .replace(/^-+|-+$/g, '');
 }
 
-function getFirstGalleryImage(galleryImages: unknown): string | undefined {
-  if (!Array.isArray(galleryImages)) {
-    return undefined;
-  }
 
-  for (const item of galleryImages) {
-    if (typeof item === 'string' && item.trim()) {
-      return item;
-    }
-
-    if (item && typeof item === 'object' && 'url' in item) {
-      const url = (item as { url?: unknown }).url;
-      if (typeof url === 'string' && url.trim()) {
-        return url;
-      }
-    }
-  }
-
-  return undefined;
-}
 
 function toSafeId(stadium: ApiStadium) {
   const raw = stadium.id ? String(stadium.id).trim() : '';
@@ -51,28 +33,25 @@ function getApiBaseUrl() {
 }
 
 function toLandingStadium(stadium: ApiStadium): Stadium {
-  const primaryImage = getFirstGalleryImage(stadium.galleryImages);
-
   return {
     id: toSafeId(stadium),
     name: stadium.name,
     city: stadium.city,
     capacity: stadium.capacity,
     sport: stadium.sportsPlayed?.[0]?.name,
-    image: primaryImage,
+    image: resolveStadiumImage(stadium),
   };
 }
 
 function toNearby(stadium: ApiStadium, index: number): NearbyStadium {
   const defaultDistances = ['12.5 km', '4.2 km', '8.7 km', '15.3 km'];
-  const image = getFirstGalleryImage(stadium.galleryImages) || '';
 
   return {
     id: toSafeId(stadium),
     name: stadium.name,
     city: stadium.city,
     distance: defaultDistances[index] || `${10 + index}.0 km`,
-    image,
+    image: resolveStadiumImage(stadium),
   };
 }
 

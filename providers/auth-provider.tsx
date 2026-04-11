@@ -2,10 +2,12 @@ import { useAuth as useClerkAuth, useSignIn, useSignUp, useUser } from '@clerk/c
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 type AuthUser = {
+  id: string | null;
   sub: string | null;
   email: string | null;
   name: string | null;
   imageUrl: string | null;
+  visitCount: number;
   claims: Record<string, unknown> | null;
 };
 
@@ -30,6 +32,7 @@ type AuthContextValue = {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<AuthActionResult>;
   updateProfile: (updates: ProfileUpdateInput) => Promise<AuthActionResult>;
+  recordVisit: (stadiumId: string) => Promise<AuthActionResult>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -141,9 +144,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const payload = (await response.json()) as {
         user?: {
+          id?: string | null;
           sub?: string | null;
           email?: string | null;
           name?: string | null;
+          visitCount?: number;
           claims?: Record<string, unknown>;
         };
       };
@@ -154,10 +159,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         (typeof payload.user?.claims?.imageUrl === 'string' ? payload.user.claims.imageUrl : null) ||
         (typeof payload.user?.claims?.picture === 'string' ? payload.user.claims.picture : null);
       setCurrentUser({
+        id: payload.user?.id ?? null,
         sub: payload.user?.sub ?? null,
         email: payload.user?.email ?? null,
         name: payload.user?.name ?? null,
         imageUrl: claimsImage,
+        visitCount: payload.user?.visitCount ?? 0,
         claims: payload.user?.claims ?? null,
       });
 
@@ -284,6 +291,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [clerkUser, userLoaded]
   );
 
+  const recordVisit = useCallback(
+    async (stadiumId: string): Promise<AuthActionResult> => {
+      const baseUrl = getApiBaseUrl();
+      if (!baseUrl) return { ok: false, message: 'API Base URL not configured' };
+
+      const currentToken = await getToken();
+      if (!currentToken) return { ok: false, message: 'Authentication required' };
+
+      try {
+        const response = await fetch(`${baseUrl}/api/visits`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ stadiumId }),
+        });
+
+        if (!response.ok) {
+          return { ok: false, message: 'Failed to record visit' };
+        }
+
+        // Refresh profile to update visit count
+        await refreshProfile();
+
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, message: 'Network error while recording visit' };
+      }
+    },
+    [getToken, refreshProfile]
+  );
+
   const initialized = authLoaded && userLoaded;
 
   useEffect(() => {
@@ -311,8 +351,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       refreshProfile,
       updateProfile,
+      recordVisit,
     }),
-    [currentUser, initialized, isSignedIn, refreshProfile, signIn, signOut, signUp, token, updateProfile]
+    [currentUser, initialized, isSignedIn, recordVisit, refreshProfile, signIn, signOut, signUp, token, updateProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

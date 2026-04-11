@@ -1,16 +1,22 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Video, ResizeMode } from 'expo-av';
+import * as WebBrowser from 'expo-web-browser';
 import { landingColors, landingFonts } from './theme';
 import { SportRule } from './sports-page-data';
 
 type Props = {
   sportName: string;
   rules: SportRule[];
+  fullGuideUrl?: string;
+  fullGuideCourtesy?: string;
 };
 
-export function SportsInteractiveRulebook({ sportName, rules }: Props) {
+export function SportsInteractiveRulebook({ sportName, rules, fullGuideUrl, fullGuideCourtesy }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [videoVisible, setVideoVisible] = useState(false);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
 
   const safeIndex = useMemo(() => {
     if (rules.length === 0) {
@@ -26,6 +32,19 @@ export function SportsInteractiveRulebook({ sportName, rules }: Props) {
   const activeRule = rules[safeIndex];
   const skillLevel = Math.min(5, safeIndex + 2);
 
+  const handleWatchVideo = (url?: string) => {
+    if (url) {
+      setCurrentVideoUrl(url);
+      setVideoVisible(true);
+    }
+  };
+
+  const handleOpenFullGuide = async () => {
+    if (fullGuideUrl) {
+      await WebBrowser.openBrowserAsync(fullGuideUrl);
+    }
+  };
+
   return (
     <View style={styles.cardWrap}>
       <View style={styles.headerRow}>
@@ -36,34 +55,51 @@ export function SportsInteractiveRulebook({ sportName, rules }: Props) {
           <Text style={styles.headerTitle}>
             The <Text style={styles.headerTitleAccent}>Official</Text> Rulebook
           </Text>
-          <Text style={styles.headerSubtitle}>Master the game of {sportName}</Text>
+          <View style={styles.headerSubtitleRow}>
+            <Text style={styles.headerSubtitle}>Master the game of {sportName}</Text>
+            {!!fullGuideUrl && (
+              <View style={styles.guideActionRow}>
+                <Pressable onPress={handleOpenFullGuide} style={styles.fullGuideLink}>
+                  <Text style={styles.fullGuideLinkText}>Full Guide</Text>
+                  <Ionicons name="open-outline" size={10} color={landingColors.blush} />
+                </Pressable>
+                {!!fullGuideCourtesy && (
+                  <Text style={styles.courtesyText}>Courtesy: {fullGuideCourtesy}</Text>
+                )}
+              </View>
+            )}
+          </View>
         </View>
       </View>
 
       <View style={styles.contentRow}>
-        <ScrollView horizontal={false} contentContainerStyle={styles.navWrap} showsVerticalScrollIndicator={false}>
-          {rules.map((rule, index) => {
-            const active = index === safeIndex;
-            return (
-              <Pressable
-                key={`${rule.title}-${index}`}
-                onPress={() => setActiveIndex(index)}
-                style={({ pressed }) => [
-                  styles.navButton,
-                  active && styles.navButtonActive,
-                  pressed && styles.navButtonPressed,
-                ]}>
-                <Text style={[styles.navButtonText, active && styles.navButtonTextActive]}>{rule.title}</Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={14}
-                  color={active ? landingColors.blush : 'rgba(238, 235, 221, 0.5)'}
-                  style={!active ? styles.chevronHidden : undefined}
-                />
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <View style={styles.navScrollArea}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.navWrap}>
+            {rules.map((rule, index) => {
+              const active = index === safeIndex;
+              return (
+                <Pressable
+                  key={`${rule.title}-${index}`}
+                  onPress={() => setActiveIndex(index)}
+                  style={({ pressed }) => [
+                    styles.navButton,
+                    active && styles.navButtonActive,
+                    pressed && styles.navButtonPressed,
+                  ]}>
+                  <Text style={[styles.navButtonText, active && styles.navButtonTextActive]}>{rule.title}</Text>
+                  {active && (
+                    <Ionicons
+                      name="chevron-down"
+                      size={10}
+                      color={landingColors.blush}
+                      style={{ marginLeft: 4 }}
+                    />
+                  )}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
 
         <View style={styles.ruleBodyWrap}>
           <Text style={styles.ruleTitle}>{activeRule.title}</Text>
@@ -75,9 +111,24 @@ export function SportsInteractiveRulebook({ sportName, rules }: Props) {
             ))}
           </View>
 
+          {activeRule.videoUrl && (
+            <View style={styles.inlineVideoContainer}>
+              <Video
+                source={{ uri: activeRule.videoUrl }}
+                rate={1.0}
+                volume={1.0}
+                isMuted={true}
+                resizeMode={ResizeMode.COVER}
+                shouldPlay
+                isLooping
+                style={styles.inlineVideo}
+              />
+            </View>
+          )}
+
           <View style={styles.footerRow}>
             <View>
-              <Text style={styles.skillLabel}>Skill Level</Text>
+              <Text style={styles.skillLabel}>Rule Complexity</Text>
               <View style={styles.skillBars}>
                 {[1, 2, 3, 4, 5].map((level) => (
                   <View key={level} style={[styles.skillBar, level <= skillLevel ? styles.skillBarActive : styles.skillBarMuted]} />
@@ -85,10 +136,12 @@ export function SportsInteractiveRulebook({ sportName, rules }: Props) {
               </View>
             </View>
 
-            <Pressable style={styles.videoBtn}>
-              <Ionicons name="play" size={11} color={landingColors.rose} />
-              <Text style={styles.videoBtnText}>Watch Video Guide</Text>
-            </Pressable>
+            {!!fullGuideUrl && (
+              <Pressable onPress={handleOpenFullGuide} style={styles.videoBtn}>
+                <Ionicons name="desktop-outline" size={11} color={landingColors.rose} />
+                <Text style={styles.videoBtnText}>Full Visual Guide</Text>
+              </Pressable>
+            )}
           </View>
         </View>
       </View>
@@ -132,30 +185,66 @@ const styles = StyleSheet.create({
     fontFamily: landingFonts.garamondRegular,
     fontStyle: 'normal',
   },
+  headerSubtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
+  },
   headerSubtitle: {
     color: 'rgba(238, 235, 221, 0.4)',
     textTransform: 'uppercase',
     letterSpacing: 1.3,
     fontSize: 9,
-    marginTop: 2,
     fontFamily: landingFonts.sansMedium,
+    flexShrink: 1,
+  },
+  guideActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  courtesyText: {
+    color: 'rgba(238, 235, 221, 0.3)',
+    fontSize: 8,
+    fontFamily: landingFonts.sansRegular,
+    fontStyle: 'italic',
+  },
+  fullGuideLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(238, 235, 221, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 99,
+  },
+  fullGuideLinkText: {
+    color: landingColors.blush,
+    fontSize: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontFamily: landingFonts.sansSemiBold,
   },
   contentRow: {
-    gap: 12,
+    gap: 16,
+  },
+  navScrollArea: {
+    marginBottom: 4,
   },
   navWrap: {
     gap: 8,
+    paddingRight: 20,
   },
   navButton: {
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
+    borderRadius: 99,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.10)',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
   navButtonActive: {
     backgroundColor: landingColors.rose,
@@ -165,49 +254,63 @@ const styles = StyleSheet.create({
     opacity: 0.86,
   },
   navButtonText: {
-    color: 'rgba(238, 235, 221, 0.75)',
+    color: 'rgba(238, 235, 221, 0.6)',
     textTransform: 'uppercase',
     letterSpacing: 1.1,
     fontSize: 10,
     fontFamily: landingFonts.sansSemiBold,
-    flexShrink: 1,
-    paddingRight: 8,
   },
   navButtonTextActive: {
     color: landingColors.blush,
   },
-  chevronHidden: {
-    opacity: 0.25,
-  },
   ruleBodyWrap: {
-    borderRadius: 14,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    padding: 12,
-    minHeight: 180,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    padding: 20,
   },
   ruleTitle: {
-    color: landingColors.rose,
-    fontSize: 31,
-    lineHeight: 34,
-    marginBottom: 8,
+    color: landingColors.blush,
+    fontSize: 28,
+    lineHeight: 32,
+    marginBottom: 12,
     fontFamily: landingFonts.garamondRegular,
   },
   ruleTextWrap: {
-    gap: 5,
+    gap: 10,
+    marginBottom: 20,
   },
   ruleBody: {
-    color: 'rgba(238, 235, 221, 0.72)',
-    fontSize: 14,
-    lineHeight: 22,
+    color: 'rgba(238, 235, 221, 0.8)',
+    fontSize: 15,
+    lineHeight: 24,
     fontFamily: landingFonts.sansRegular,
   },
+  inlineVideoContainer: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  inlineVideo: {
+    width: '100%',
+    height: '100%',
+  },
+  videoOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   footerRow: {
-    marginTop: 14,
-    paddingTop: 10,
+    paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.10)',
+    borderTopColor: 'rgba(255,255,255,0.06)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -218,7 +321,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1.1,
     fontSize: 8,
-    marginBottom: 4,
+    marginBottom: 6,
     fontFamily: landingFonts.sansMedium,
   },
   skillBars: {
@@ -226,7 +329,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   skillBar: {
-    width: 12,
+    width: 14,
     height: 3,
     borderRadius: 999,
   },
@@ -234,12 +337,18 @@ const styles = StyleSheet.create({
     backgroundColor: landingColors.rose,
   },
   skillBarMuted: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   videoBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
+    backgroundColor: 'rgba(129,0,0,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(129,0,0,0.3)',
   },
   videoBtnText: {
     color: landingColors.rose,

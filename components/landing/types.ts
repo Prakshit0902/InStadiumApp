@@ -4,8 +4,9 @@ export type Stadium = {
   city: string;
   capacity?: number;
   sport?: string;
-  image?: string;
+  image?: string | number;
 };
+
 
 export type SportItem = {
   name: string;
@@ -18,6 +19,7 @@ export type NearbyStadium = {
   city: string;
   distance: string;
   image: string | number;
+  type?: 'stadium' | 'sport' | 'player';
 };
 
 export type ApiSport = {

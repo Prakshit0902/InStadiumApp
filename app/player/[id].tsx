@@ -5,9 +5,10 @@ import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { landingColors, landingFonts } from '@/components/landing/theme';
-import { getLocalStadiumImage } from '@/components/landing/data';
+import { resolveStadiumImage } from '@/components/landing/data';
 import { ApiPlayer, ApiStadiumCard } from '@/components/stadium/types';
-import { firstGalleryUrl, getApiBaseUrl, parseArray } from '@/components/stadium/utils';
+import { getApiBaseUrl, parseArray } from '@/components/stadium/utils';
+import { GridLoader } from '@/components/ui/GridLoader';
 
 type PlayerStat = {
   label?: string;
@@ -167,18 +168,8 @@ export default function PlayerDetailScreen() {
     return Math.min(Math.max(scaledHeight, 360), 620);
   }, [width]);
 
-  if (loading) {
-    return (
-      <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
-        <View style={styles.centerState}>
-          <ActivityIndicator size="large" color={landingColors.rose} />
-          <Text style={styles.stateText}>Loading player profile...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
-  if (error || !player) {
+  if (!loading && (error || !player)) {
     return (
       <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
         <Stack.Screen options={{ title: 'Player', headerShown: true }} />
@@ -194,16 +185,27 @@ export default function PlayerDetailScreen() {
     );
   }
 
+  if (!player) return null;
+
   const sportName = player.sport?.name || params.sport || 'Sport';
   const playerImage = player.image || params.image;
 
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
-      <Stack.Screen options={{ title: player.name, headerShown: true, headerTintColor: landingColors.blush, headerStyle: { backgroundColor: landingColors.plum } }} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.heroSection}>
+      <Stack.Screen options={{ title: player?.name || 'Player', headerShown: true, headerTintColor: landingColors.blush, headerStyle: { backgroundColor: landingColors.plum } }} />
+      <ScrollView 
+        contentContainerStyle={loading ? { flex: 1 } : styles.content} 
+        showsVerticalScrollIndicator={false}
+      >
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: landingColors.blush }}>
+            <GridLoader size={100} color={landingColors.rose} speed={1.5} />
+          </View>
+        ) : (
+          <>
+            <View style={styles.heroSection}>
           <View style={[styles.heroImageWrap, { height: heroImageHeight }]}>
-            <Image source={getLocalStadiumImage(playerImage || undefined)} style={styles.heroImage} contentFit="contain" />
+            <Image source={playerImage ? { uri: playerImage } : require('@/assets/images/landing/stadiums/narendramodistadium.jpg')} style={styles.heroImage} contentFit="contain" />
             <View style={styles.heroOverlay} />
           </View>
 
@@ -270,7 +272,7 @@ export default function PlayerDetailScreen() {
                   key={stadium.id}
                   style={({ pressed }) => [styles.arenaCard, pressed && styles.arenaCardPressed]}
                   onPress={() => router.push(`/stadium/${encodeURIComponent(stadium.id)}` as never)}>
-                  <Image source={getLocalStadiumImage(firstGalleryUrl(stadium.galleryImages))} style={styles.arenaImage} contentFit="cover" />
+                  <Image source={resolveStadiumImage(stadium)} style={styles.arenaImage} contentFit="cover" />
                   <View style={styles.arenaOverlay} />
                   <View style={styles.arenaContent}>
                     <Text style={styles.arenaName}>{stadium.name}</Text>
@@ -302,6 +304,8 @@ export default function PlayerDetailScreen() {
         <View style={styles.footerSection}>
           <Text style={styles.footerMeta}>© 2026 Instadium</Text>
         </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

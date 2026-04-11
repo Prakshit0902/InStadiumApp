@@ -15,6 +15,8 @@ import * as WebBrowser from 'expo-web-browser';
 import { useRouter } from 'expo-router';
 import { useSSO } from '@clerk/clerk-expo';
 import { useAuth } from '@/hooks/use-auth';
+import { GridLoader } from '@/components/ui/GridLoader';
+import { landingColors } from '@/components/landing/theme';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -166,8 +168,7 @@ export default function AuthScreen() {
 
         {!initialized ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="small" color="#810000" />
-            <Text style={styles.infoText}>Loading session...</Text>
+            <GridLoader size={60} color={landingColors.rose} speed={1.5} />
           </View>
         ) : null}
 
@@ -205,6 +206,9 @@ export default function AuthScreen() {
             />
 
             <Text style={styles.infoText}>User ID: {user?.sub || 'Not available'}</Text>
+            <Text style={[styles.infoText, { fontWeight: '700', marginTop: 4, color: '#810000' }]}>
+              Stadium Visits: {user?.visitCount ?? 0}
+            </Text>
 
             <Pressable style={styles.button} onPress={onSaveProfile} disabled={submitting}>
               <Text style={styles.buttonText}>Save Profile</Text>
@@ -333,9 +337,15 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   loadingWrap: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'center',
+    backgroundColor: landingColors.blush,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    borderRadius: 16,
+    alignSelf: 'center',
+    marginBottom: 20,
+    width: '100%',
   },
   card: {
     backgroundColor: '#fff',

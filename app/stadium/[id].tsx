@@ -11,10 +11,11 @@ import { PlayersSection } from '@/components/stadium/PlayersSection';
 import { LocationSection } from '@/components/stadium/MapsSection';
 import { NearbyStadiumsSection } from '@/components/stadium/NearbyStadiumsSection';
 import { useStadiumDetail } from '@/components/stadium/use-stadium-detail';
-import { firstGalleryUrl } from '@/components/stadium/utils';
-import { getLocalStadiumImage } from '@/components/landing/data';
+import { resolveStadiumImage } from '@/components/landing/data';
 import { landingColors } from '@/components/landing/theme';
 import { stadiumDetailStyles as styles } from '@/components/stadium/StadiumDetailStyles';
+import { GridLoader } from '@/components/ui/GridLoader';
+import { EntranceView } from '@/components/ui/EntranceView';
 
 export default function StadiumDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -32,18 +33,8 @@ export default function StadiumDetailScreen() {
     nearbyStadiums,
   } = useStadiumDetail(id);
 
-  if (loading) {
-    return (
-      <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
-        <View style={styles.centerState}>
-          <ActivityIndicator size="large" color={landingColors.rose} />
-          <Text style={styles.stateText}>Loading stadium details...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
-  if (error || !stadium) {
+  if (!loading && (error || !stadium)) {
     return (
       <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
         <Stack.Screen options={{ title: 'Stadium', headerShown: true }} />
@@ -59,56 +50,83 @@ export default function StadiumDetailScreen() {
     );
   }
 
-  const heroImage = getLocalStadiumImage(firstGalleryUrl(stadium.galleryImages));
+  const heroImage = stadium ? resolveStadiumImage(stadium) : null;
 
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
-      <Stack.Screen options={{ title: stadium.name, headerShown: true, headerTintColor: landingColors.plum }} />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <StadiumHeroSection
-          imageSource={heroImage}
-          name={stadium.name}
-          city={stadium.city}
-          state={stadium.state}
-          capacity={stadium.capacity}
-          builtYear={stadium.builtYear}
-          sportsLabel={stadium.sportsPlayed?.map((x) => x.name).join(', ') || ''}
-        />
+      <Stack.Screen options={{ title: stadium?.name || 'Stadium', headerShown: true, headerTintColor: landingColors.plum }} />
+      <ScrollView 
+        contentContainerStyle={loading ? { flex: 1 } : styles.content} 
+        showsVerticalScrollIndicator={false}
+      >
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: landingColors.blush }}>
+            <GridLoader size={100} color={landingColors.rose} speed={1.5} />
+          </View>
+        ) : (
+          <>
+            <EntranceView delay={0}>
+          <StadiumHeroSection
+            imageSource={heroImage}
+            name={stadium.name}
+            city={stadium.city}
+            state={stadium.state}
+            capacity={stadium.capacity}
+            builtYear={stadium.builtYear}
+            sportsLabel={stadium.sportsPlayed?.map((x) => x.name).join(', ') || ''}
+          />
+        </EntranceView>
 
         {!!stadium.description && (
-          <View style={styles.overviewSection}>
-            <SectionHeader kicker="Overview" title="About this Arena" />
-            <Text style={styles.overviewText}>{stadium.description}</Text>
-          </View>
+          <EntranceView delay={0}>
+            <View style={styles.overviewSection}>
+              <SectionHeader kicker="Overview" title="About this Arena" />
+              <Text style={styles.overviewText}>{stadium.description}</Text>
+            </View>
+          </EntranceView>
         )}
 
-        <View style={styles.sectionGap}>
-          <GallerySection gallery={gallery} />
-        </View>
+        <EntranceView delay={0}>
+          <View style={styles.sectionGap}>
+            <GallerySection gallery={gallery} />
+          </View>
+        </EntranceView>
 
-        <View style={styles.sectionGap}>
-          <TimelineSection timeline={timeline} />
-        </View>
+        <EntranceView delay={0}>
+          <View style={styles.sectionGap}>
+            <TimelineSection timeline={timeline} />
+          </View>
+        </EntranceView>
 
-        <View style={styles.sectionGap}>
-          <MatchesSection matches={matches} stadiumName={stadium.name} city={stadium.city} />
-        </View>
+        <EntranceView delay={0}>
+          <View style={styles.sectionGap}>
+            <MatchesSection matches={matches} stadiumName={stadium.name} city={stadium.city} />
+          </View>
+        </EntranceView>
 
-        <View style={styles.sectionGap}>
-          <PlayersSection players={players} fallbackSport={primarySport?.name} />
-        </View>
+        <EntranceView delay={0}>
+          <View style={styles.sectionGap}>
+            <PlayersSection players={players} fallbackSport={primarySport?.name} />
+          </View>
+        </EntranceView>
 
-        <View style={styles.sectionGap}>
-          <LocationSection name={stadium.name} latitude={stadium.latitude} longitude={stadium.longitude} />
-        </View>
+        <EntranceView delay={0}>
+          <View style={styles.sectionGap}>
+            <LocationSection name={stadium.name} latitude={stadium.latitude} longitude={stadium.longitude} />
+          </View>
+        </EntranceView>
 
-        <View style={styles.sectionGap}>
-          <NearbyStadiumsSection stadiums={nearbyStadiums} />
-        </View>
+        <EntranceView delay={0}>
+          <View style={styles.sectionGap}>
+            <NearbyStadiumsSection stadiums={nearbyStadiums} />
+          </View>
+        </EntranceView>
 
         <View style={styles.footerSection}>
           <Text style={styles.footerMeta}>© 2026 Instadium</Text>
         </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

@@ -11,10 +11,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import { getLocalStadiumImage } from '@/components/landing/data';
+import { resolveStadiumImage } from '@/components/landing/data';
 import { SportsInteractiveRulebook } from '@/components/landing/SportsInteractiveRulebook';
-import { SPORTS_HUB_DATA, toSportSlug } from '@/components/landing/sports-page-data';
+import { ADDITIONAL_SPORTS_DATA, SPORTS_HUB_DATA, toSportSlug } from '@/components/landing/sports-page-data';
 import { landingColors, landingFonts } from '@/components/landing/theme';
+import { GridLoader } from '@/components/ui/GridLoader';
 
 type ApiSport = {
   id: string;
@@ -47,13 +48,7 @@ function formatCapacity(value?: number) {
   return Intl.NumberFormat('en-IN').format(value);
 }
 
-function getStadiumImage(stadium: ApiStadium) {
-  const firstGalleryUrl = Array.isArray(stadium.galleryImages)
-    ? stadium.galleryImages.find((item) => typeof item?.url === 'string' && item.url)?.url
-    : undefined;
 
-  return getLocalStadiumImage(firstGalleryUrl);
-}
 
 function normalize(value?: string | null) {
   return (value || '').trim().toLowerCase();
@@ -92,6 +87,8 @@ export default function SportsScreen() {
       });
   }, []);
 
+  const sportSlug = toSportSlug(selectedSportName);
+  const metadata = ADDITIONAL_SPORTS_DATA[sportSlug] || ADDITIONAL_SPORTS_DATA.cricket;
   const activeSportData = useMemo(() => {
     return SPORTS_HUB_DATA[selectedSportName] || SPORTS_HUB_DATA.Cricket;
   }, [selectedSportName]);
@@ -113,11 +110,19 @@ export default function SportsScreen() {
   const selectedSportRank = SPORT_NAMES.indexOf(selectedSportName) + 1;
 
   return (
-    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
       <Stack.Screen options={{ title: 'Sports', headerTintColor: landingColors.plum }} />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.heroSection}>
+          {metadata.heroImage && (
+            <Image
+              source={{ uri: metadata.heroImage }}
+              style={styles.heroBackgroundImage}
+              contentFit="cover"
+              transition={300}
+            />
+          )}
           <View style={styles.heroOverlay} />
           <Text style={styles.heroTitle}>
             The <Text style={styles.heroTitleAccent}>Sporting</Text> Spirit
@@ -172,7 +177,7 @@ export default function SportsScreen() {
 
           {loading ? (
             <View style={styles.loadingWrap}>
-              <ActivityIndicator size="small" color={landingColors.rose} />
+              <GridLoader size={60} color={landingColors.rose} speed={1.5} />
             </View>
           ) : affiliatedStadiums.length > 0 ? (
             affiliatedStadiums.map((stadium) => (
@@ -180,7 +185,7 @@ export default function SportsScreen() {
                 key={stadium.id}
                 style={({ pressed }) => [styles.venueCard, pressed && styles.venueCardPressed]}
                 onPress={() => router.push(`/stadium/${stadium.id}`)}>
-                <Image source={getStadiumImage(stadium)} style={styles.venueImage} contentFit="cover" transition={120} />
+                <Image source={resolveStadiumImage(stadium)} style={styles.venueImage} contentFit="cover" transition={120} />
                 <View style={styles.venueOverlay}>
                   <Text style={styles.venueCity}>{stadium.city}</Text>
                   <Text style={styles.venueName}>{stadium.name}</Text>
@@ -223,19 +228,25 @@ const styles = StyleSheet.create({
     backgroundColor: landingColors.blush,
   },
   content: {
-    paddingBottom: 40,
+    paddingBottom: 10,
   },
   heroSection: {
     backgroundColor: landingColors.plum,
-    paddingTop: 34,
-    paddingBottom: 28,
+    paddingTop: 44,
+    paddingBottom: 38,
     paddingHorizontal: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     overflow: 'hidden',
+    position: 'relative',
+  },
+  heroBackgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.8,
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.1,
-    backgroundColor: '#7C5E4A',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   heroTitle: {
     color: landingColors.blush,
@@ -411,6 +422,10 @@ const styles = StyleSheet.create({
   loadingWrap: {
     paddingVertical: 24,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: landingColors.blush,
+    borderRadius: 16,
+    marginVertical: 10,
   },
   venueCard: {
     borderRadius: 18,

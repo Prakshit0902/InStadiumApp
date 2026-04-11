@@ -1,12 +1,11 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { getLocalStadiumImage } from '@/components/landing/data';
+import { resolveStadiumImage } from '@/components/landing/data';
 import { landingColors, landingFonts } from '@/components/landing/theme';
 import { AnimatedReveal } from './AnimatedReveal';
 import { SectionHeader } from './SectionHeader';
 import { NearbyStadium } from './types';
-import { firstGalleryUrl } from './utils';
 
 type Props = {
   stadiums: NearbyStadium[];
@@ -26,7 +25,7 @@ export function NearbyStadiumsSection({ stadiums }: Props) {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.nearbyList}>
           {stadiums.map((item) => (
             <Pressable key={item.id} style={styles.nearbyCard} onPress={() => router.push((`/stadium/${item.id}` as never))}>
-              <Image source={getLocalStadiumImage(firstGalleryUrl(item.galleryImages))} style={styles.nearbyImage} />
+              <Image source={resolveStadiumImage(item)} style={styles.nearbyImage} contentFit="cover" />
               <View style={styles.nearbyOverlay} />
               <View style={styles.nearbyContent}>
                 <Text style={styles.nearbyDistance}>

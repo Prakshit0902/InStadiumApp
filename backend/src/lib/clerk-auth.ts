@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+import { prisma } from './prisma.js';
 
 type AuthContext = {
   payload: JWTPayload;
@@ -79,6 +80,40 @@ function saveAuthContext(req: Request, context: AuthContext) {
   Reflect.set(req, AUTH_CONTEXT_KEY, context);
 }
 
+async function syncClerkUser(payload: JWTPayload) {
+  const clerkId = typeof payload.sub === 'string' ? payload.sub : null;
+  if (!clerkId) return;
+
+  const emailClaim = payload.email ?? payload.email_address;
+  const email = typeof emailClaim === 'string' ? emailClaim : null;
+  const name = typeof payload.name === 'string' ? payload.name : null;
+
+  // Extract images from claims if possible
+  const imageUrl =
+    (typeof payload.image === 'string' ? payload.image : null) ||
+    (typeof payload.imageUrl === 'string' ? payload.imageUrl : null) ||
+    (typeof payload.picture === 'string' ? payload.picture : null);
+
+  try {
+    await prisma.user.upsert({
+      where: { clerkId },
+      update: {
+        email,
+        name,
+        imageUrl,
+      },
+      create: {
+        clerkId,
+        email,
+        name,
+        imageUrl,
+      },
+    });
+  } catch (error) {
+    console.error('Failed to sync Clerk user to database:', error);
+  }
+}
+
 export function getClerkAuthContext(req: Request): AuthContext | null {
   const context = Reflect.get(req, AUTH_CONTEXT_KEY) as AuthContext | undefined;
   return context ?? null;
@@ -93,6 +128,10 @@ export async function requireClerkAuth(req: Request, res: Response, next: NextFu
   try {
     const payload = await verifyToken(token);
     saveAuthContext(req, { payload, token });
+
+    // Sync user with our database asynchronously (don't block the request)
+    void syncClerkUser(payload);
+
     return next();
   } catch (error) {
     if ((error as Error).message === 'CLERK_AUTH_NOT_CONFIGURED') {

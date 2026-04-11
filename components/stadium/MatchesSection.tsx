@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { landingColors, landingFonts } from '@/components/landing/theme';
 import { AnimatedReveal } from './AnimatedReveal';
@@ -11,6 +11,45 @@ type Props = {
   stadiumName: string;
   city?: string;
 };
+
+// Map our city names to BookMyShow city URL slugs
+const BMS_CITY_SLUGS: Record<string, string> = {
+  ahmedabad: 'ahmedabad',
+  mumbai: 'mumbai',
+  kolkata: 'kolkata',
+  bengaluru: 'bengaluru',
+  bangalore: 'bengaluru',
+  delhi: 'ncr',
+  hyderabad: 'hyderabad',
+  chennai: 'chennai',
+  pune: 'pune',
+  jaipur: 'jaipur',
+  lucknow: 'lucknow',
+};
+
+function buildBMSUrl(match: MatchItem, city?: string): string {
+  // If a direct BMS event page URL is hardcoded, use it immediately
+  if (match.bmsUrl) return match.bmsUrl;
+
+  // Build a fallback search query from match info
+  const query = [match.teams, match.tournament]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/[—–]/g, '')
+    .trim();
+
+  const encoded = encodeURIComponent(query);
+
+  const citySlug = city
+    ? BMS_CITY_SLUGS[city.toLowerCase().trim()] || null
+    : null;
+
+  if (citySlug) {
+    return `https://in.bookmyshow.com/search?q=${encoded}&category=sports&city=${citySlug}`;
+  }
+
+  return `https://in.bookmyshow.com/search?q=${encoded}&category=sports`;
+}
 
 function withFallbackMatches(matches: MatchItem[], stadiumName: string, city?: string): MatchItem[] {
   if (matches.length > 0) {
@@ -28,12 +67,21 @@ function withFallbackMatches(matches: MatchItem[], stadiumName: string, city?: s
 export function MatchesSection({ matches, stadiumName, city }: Props) {
   const materializedMatches = withFallbackMatches(matches, stadiumName, city);
 
+  const openBMS = (match: MatchItem) => {
+    const url = buildBMSUrl(match, city);
+    Linking.openURL(url).catch(() => undefined);
+  };
+
   return (
     <AnimatedReveal delay={150}>
       <View style={styles.section}>
         <SectionHeader kicker="Matches" title="Upcoming Spectacles" />
         {materializedMatches.map((match, index) => (
-          <Pressable key={`${match.teams || index}-${index}`} style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
+          <Pressable
+            key={`${match.teams || index}-${index}`}
+            style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+            onPress={() => openBMS(match)}
+          >
             <View style={styles.dateBadge}>
               <Text style={styles.dateDay}>{formatDate(match.date).split(' ')[0]}</Text>
               <Text style={styles.dateMonth}>{formatDate(match.date).split(' ').slice(1).join(' ')}</Text>
@@ -51,7 +99,8 @@ export function MatchesSection({ matches, stadiumName, city }: Props) {
               </View>
               <View style={styles.ticketRow}>
                 <Ionicons name="ticket-outline" size={13} color={landingColors.rose} />
-                <Text style={styles.ticketText}>Reserve Seat</Text>
+                <Text style={styles.ticketText}>Book on BookMyShow</Text>
+                <Ionicons name="open-outline" size={11} color={landingColors.rose} style={styles.externalIcon} />
               </View>
             </View>
           </Pressable>
@@ -60,6 +109,7 @@ export function MatchesSection({ matches, stadiumName, city }: Props) {
     </AnimatedReveal>
   );
 }
+
 
 const styles = StyleSheet.create({
   section: {
@@ -144,5 +194,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     fontSize: 9,
     fontFamily: landingFonts.sansSemiBold,
+    flex: 1,
+  },
+  externalIcon: {
+    marginLeft: 2,
   },
 });

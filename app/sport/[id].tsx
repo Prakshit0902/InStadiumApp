@@ -6,15 +6,17 @@ import {
   StyleSheet,
   Text,
   View,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { getLocalStadiumImage, getSportIconByName } from '@/components/landing/data';
+import { getLocalStadiumImage, getSportIconByName, resolveStadiumImage } from '@/components/landing/data';
 import { SportsInteractiveRulebook } from '@/components/landing/SportsInteractiveRulebook';
 import { ADDITIONAL_SPORTS_DATA, SportMetadata, toSportLabel, toSportSlug } from '@/components/landing/sports-page-data';
 import { landingColors, landingFonts } from '@/components/landing/theme';
+import { GridLoader } from '@/components/ui/GridLoader';
 
 type ApiSport = {
   id: string;
@@ -78,13 +80,7 @@ function parseAchievements(value: unknown): string[] {
     .slice(0, 3);
 }
 
-function getStadiumImage(stadium: ApiStadium) {
-  const firstGalleryUrl = Array.isArray(stadium.galleryImages)
-    ? stadium.galleryImages.find((item) => typeof item?.url === 'string' && item.url)?.url
-    : undefined;
 
-  return getLocalStadiumImage(firstGalleryUrl);
-}
 
 function normalize(value?: string | null) {
   return (value || '').trim().toLowerCase();
@@ -167,6 +163,15 @@ export default function SportDetailScreen() {
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.heroSection}>
+          {metadata.heroImage && (
+            <Image
+              source={{ uri: metadata.heroImage }}
+              style={styles.heroBackgroundImage}
+              contentFit="cover"
+              transition={300}
+            />
+          )}
+          <View style={styles.heroOverlay} />
           <View style={styles.heroGlow} />
           <View style={styles.tagRow}>
             {metadata.tags.map((tag) => (
@@ -210,25 +215,29 @@ export default function SportDetailScreen() {
           <Text style={styles.rulebookTitle}>
             The Interactive <Text style={styles.rulebookTitleItalic}>Rulebook</Text>
           </Text>
-          <SportsInteractiveRulebook sportName={metadata.name} rules={metadata.rulebook} />
+          <SportsInteractiveRulebook 
+            sportName={metadata.name} 
+            rules={metadata.rulebook} 
+            fullGuideUrl={metadata.fullGuideUrl}
+            fullGuideCourtesy={metadata.fullGuideCourtesy}
+          />
         </View>
 
         <View style={styles.venuesSection}>
-          <View style={styles.venuesHeadingRow}>
-            <View>
-              <Text style={styles.venuesKicker}>Venues</Text>
-              <Text style={styles.venuesTitle}>
-                Associated <Text style={styles.venuesTitleItalic}>Arenas</Text>
-              </Text>
-            </View>
-            <Pressable onPress={() => router.push('/explore')}>
-              <Text style={styles.venuesAction}>All Indian Venues</Text>
+          <View style={styles.venuesHeaderBlock}>
+            <Text style={styles.venuesKicker}>Venues</Text>
+            <Text style={styles.venuesTitle}>
+              Associated <Text style={styles.venuesTitleItalic}>Arenas</Text>
+            </Text>
+            <Pressable style={styles.venuesActionSubRow} onPress={() => router.push('/explore')}>
+              <Text style={styles.venuesActionText}>All Indian Venues</Text>
+              <Ionicons name="arrow-forward-outline" size={12} color={landingColors.rose} />
             </Pressable>
           </View>
 
           {loading ? (
             <View style={styles.loadingWrap}>
-              <ActivityIndicator size="small" color={landingColors.rose} />
+              <GridLoader size={60} color={landingColors.rose} speed={1.5} />
             </View>
           ) : affiliatedStadiums.length > 0 ? (
             affiliatedStadiums.map((stadium) => (
@@ -236,7 +245,7 @@ export default function SportDetailScreen() {
                 key={stadium.id}
                 style={({ pressed }) => [styles.venueCard, pressed && styles.venueCardPressed]}
                 onPress={() => router.push(`/stadium/${stadium.id}`)}>
-                <Image source={getStadiumImage(stadium)} style={styles.venueImage} contentFit="cover" transition={100} />
+                <Image source={resolveStadiumImage(stadium)} style={styles.venueImage} contentFit="cover" transition={100} />
                 <View style={styles.venueOverlay}>
                   <Text style={styles.venueCity}>{stadium.city}</Text>
                   <Text style={styles.venueName}>{stadium.name}</Text>
@@ -262,7 +271,7 @@ export default function SportDetailScreen() {
 
           {loading ? (
             <View style={styles.loadingWrap}>
-              <ActivityIndicator size="small" color={landingColors.rose} />
+              <GridLoader size={60} color={landingColors.rose} speed={1.5} />
             </View>
           ) : iconicPlayers.length > 0 ? (
             iconicPlayers.map((player) => {
@@ -270,7 +279,11 @@ export default function SportDetailScreen() {
               const imageSource = player.image ? player.image : getLocalStadiumImage(undefined);
 
               return (
-                <View key={player.id} style={styles.playerCard}>
+                <Pressable 
+                  key={player.id} 
+                  style={({ pressed }) => [styles.playerCard, pressed && styles.playerCardPressed]}
+                  onPress={() => router.push(`/player/${player.id}`)}
+                >
                   <Image source={imageSource} style={styles.playerImage} contentFit="cover" transition={100} />
 
                   <View style={styles.playerBadge}>
@@ -288,7 +301,7 @@ export default function SportDetailScreen() {
                       </View>
                     ))}
                   </View>
-                </View>
+                </Pressable>
               );
             })
           ) : (
@@ -302,12 +315,16 @@ export default function SportDetailScreen() {
           <Text style={styles.ctaTitle}>
             Witness the <Text style={styles.ctaTitleItalic}>passion</Text> on India&apos;s grandest stages.
           </Text>
-          <Pressable style={({ pressed }) => [styles.ctaPrimary, pressed && styles.ctaPressed]} onPress={() => router.push('/explore')}>
+          <Pressable 
+            style={({ pressed }) => [styles.ctaPrimary, pressed && styles.ctaPressed]} 
+            onPress={() => router.push('/inquiries')}
+          >
             <Text style={styles.ctaPrimaryText}>Book Stadium Tour</Text>
           </Pressable>
           <Pressable
             style={({ pressed }) => [styles.ctaSecondary, pressed && styles.ctaPressed]}
-            onPress={() => router.push(`/sports`)}>
+            onPress={() => metadata.federationUrl && Linking.openURL(metadata.federationUrl)}
+          >
             <Text style={styles.ctaSecondaryText}>Contact Federation</Text>
           </Pressable>
         </View>
@@ -336,9 +353,20 @@ const styles = StyleSheet.create({
   heroSection: {
     backgroundColor: landingColors.plum,
     paddingHorizontal: 20,
-    paddingTop: 26,
-    paddingBottom: 24,
+    paddingTop: 44,
+    paddingBottom: 38,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     overflow: 'hidden',
+    position: 'relative',
+  },
+  heroBackgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.8,
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   heroGlow: {
     position: 'absolute',
@@ -513,44 +541,50 @@ const styles = StyleSheet.create({
     marginTop: 4,
     backgroundColor: landingColors.plum,
     paddingHorizontal: 20,
-    paddingTop: 18,
+    paddingTop: 22,
     paddingBottom: 16,
   },
-  venuesHeadingRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginBottom: 10,
+  venuesHeaderBlock: {
+    marginBottom: 20,
+    gap: 3,
   },
   venuesKicker: {
     color: landingColors.rose,
     textTransform: 'uppercase',
     letterSpacing: 2,
     fontSize: 10,
-    marginBottom: 3,
     fontFamily: landingFonts.sansSemiBold,
   },
   venuesTitle: {
     color: landingColors.blush,
-    fontSize: 38,
-    lineHeight: 42,
+    fontSize: 42,
+    lineHeight: 46,
     fontFamily: landingFonts.garamondItalic,
   },
   venuesTitleItalic: {
     fontFamily: landingFonts.garamondRegular,
   },
-  venuesAction: {
-    color: 'rgba(238, 235, 221, 0.7)',
+  venuesActionSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  venuesActionText: {
+    color: 'rgba(238, 235, 221, 0.6)',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
-    fontSize: 9,
-    paddingBottom: 3,
+    fontSize: 10,
     fontFamily: landingFonts.sansSemiBold,
+    textDecorationLine: 'underline',
   },
   loadingWrap: {
-    paddingVertical: 20,
+    paddingVertical: 24,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: landingColors.blush,
+    borderRadius: 16,
+    marginVertical: 10,
   },
   venueCard: {
     borderRadius: 18,
@@ -628,6 +662,15 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(129, 0, 0, 0.14)',
     padding: 12,
     position: 'relative',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  playerCardPressed: {
+    transform: [{ scale: 0.98 }],
+    opacity: 0.95,
   },
   playerImage: {
     width: '100%',

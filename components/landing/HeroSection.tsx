@@ -9,12 +9,9 @@ type Props = {
   isTablet: boolean;
   onExplorePress: () => void;
   onQuickTourPress?: () => void;
-  onQuickPillPress?: (pill: 'Live Events' | 'Nearby' | 'Top Rated') => void;
 };
 
-function HeroSectionBase({ horizontalPadding, isTablet, onExplorePress, onQuickTourPress, onQuickPillPress }: Props) {
-  const quickPills = ['Live Events', 'Nearby', 'Top Rated'];
-
+function HeroSectionBase({ horizontalPadding, isTablet, onExplorePress, onQuickTourPress }: Props) {
   return (
     <View style={[styles.wrapper, { paddingHorizontal: horizontalPadding }]}> 
       <View style={[styles.card, isTablet ? styles.cardTablet : styles.cardPhone]}>
@@ -36,18 +33,6 @@ function HeroSectionBase({ horizontalPadding, isTablet, onExplorePress, onQuickT
           <Text style={styles.body}>
             Interactive guides for India&apos;s iconic sports venues, from legendary match history to live-day information.
           </Text>
-
-          <View style={styles.quickPillsWrap}>
-            {quickPills.map((pill) => (
-              <Pressable
-                key={pill}
-                onPress={() => onQuickPillPress?.(pill as 'Live Events' | 'Nearby' | 'Top Rated')}
-                android_ripple={{ color: 'rgba(238, 235, 221, 0.24)' }}
-                style={({ pressed }) => [styles.quickPill, pressed && styles.ctaPressed]}>
-                <Text style={styles.quickPillText}>{pill}</Text>
-              </Pressable>
-            ))}
-          </View>
 
           <View style={styles.actionRow}>
             <Pressable
@@ -129,27 +114,6 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     maxWidth: 520,
     fontFamily: landingFonts.sansRegular,
-  },
-  quickPillsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  quickPill: {
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(238, 235, 221, 0.35)',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  quickPillText: {
-    color: landingColors.blush,
-    fontSize: 10,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    fontFamily: landingFonts.sansMedium,
   },
   actionRow: {
     flexDirection: 'row',

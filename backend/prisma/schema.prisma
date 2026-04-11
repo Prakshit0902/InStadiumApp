@@ -6,6 +6,29 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String?
+  name      String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  visits    Visit[]
+}
+
+model Visit {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  stadiumId String
+  stadium   Stadium  @relation(fields: [stadiumId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([stadiumId])
+}
+
 model Sport {
   id             String    @id @default(cuid())
   name           String
@@ -36,6 +59,7 @@ model Stadium {
   nearbyPlaces     Json?
   players          Player[]    @relation("PlayerToStadium")
   qrMappings       QRMapping[]
+  visits           Visit[]
 }
 
 model Player {

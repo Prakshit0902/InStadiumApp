@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { getLocalStadiumImage, nearbyStadiums } from './data';
+import { nearbyStadiums } from './data';
 import { NearbyStadium } from './types';
 import { landingColors, landingFonts } from './theme';
 
@@ -49,7 +49,7 @@ function NearbyStadiumsBase({ horizontalPadding, nearbyData = nearbyStadiums, on
             onPress={() => onStadiumPress(item.id)}
             android_ripple={{ color: 'rgba(238, 235, 221, 0.20)' }}>
             <Image
-              source={typeof item.image === 'number' ? item.image : getLocalStadiumImage(item.image || undefined)}
+              source={item.image}
               style={styles.image}
               contentFit="cover"
               cachePolicy="memory-disk"

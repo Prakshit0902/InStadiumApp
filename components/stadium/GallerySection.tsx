@@ -10,6 +10,17 @@ type Props = {
   gallery: (GalleryImage | string)[];
 };
 
+function resolveGallerySource(item: GalleryImage | string) {
+  const url = typeof item === 'string' ? item : item.url;
+  if (!url) return getLocalStadiumImage(undefined);
+  // Raw http(s) URLs go directly to expo-image
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return { uri: url };
+  }
+  // Cloudinary public IDs go through the local resolver
+  return getLocalStadiumImage(url);
+}
+
 export function GallerySection({ gallery }: Props) {
   if (gallery.length === 0) {
     return null;
@@ -21,7 +32,7 @@ export function GallerySection({ gallery }: Props) {
         <SectionHeader kicker="Gallery" title="Visual Perspective" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryList}>
           {gallery.map((item, index) => {
-            const source = getLocalStadiumImage(typeof item === 'string' ? item : item.url);
+            const source = resolveGallerySource(item);
             const caption = typeof item === 'string' ? `Frame ${index + 1}` : item.caption || `Frame ${index + 1}`;
             return (
               <View key={`${caption}-${index}`} style={[styles.galleryCard, index % 3 === 0 && styles.galleryCardLarge]}>
@@ -35,6 +46,7 @@ export function GallerySection({ gallery }: Props) {
     </AnimatedReveal>
   );
 }
+
 
 const styles = StyleSheet.create({
   section: {

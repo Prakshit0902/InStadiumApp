@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, Linking, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { landingColors, landingFonts } from '@/components/landing/theme';
@@ -25,18 +25,20 @@ const keepers = [
   {
     name: 'Satyansh Singh',
     role: 'Founding Creator',
-    image: require('../assets/images/satyanshsingh.jpg'),
+    image: require('../../assets/images/satyanshsingh.jpg'),
+    linkedinUrl: 'https://www.linkedin.com/in/satyansh-singh-b27058292/',
   },
   {
     name: 'Prakshit Suthar',
     role: 'Founding Creator',
-    image: require('../assets/images/prakshitsuthar.jpeg'),
+    image: require('../../assets/images/prakshitsuthar.jpeg'),
+    linkedinUrl: 'https://www.linkedin.com/in/prakshitsuthar/',
   },
 ];
 
 export default function AboutStudioScreen() {
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.heroSection}>
           <Text style={styles.kicker}>Our Heritage</Text>
@@ -101,11 +103,15 @@ export default function AboutStudioScreen() {
             Creators of the <Text style={styles.sectionAccent}>Arena</Text>
           </Text>
           {keepers.map((member) => (
-            <View key={member.name} style={styles.keeperCard}>
+            <Pressable 
+              key={member.name} 
+              onPress={() => Linking.openURL(member.linkedinUrl)}
+              style={({ pressed }) => [styles.keeperCard, pressed && { opacity: 0.7 }]}
+            >
               <Image source={member.image} style={styles.keeperImage} contentFit="cover" transition={120} />
               <Text style={styles.keeperRole}>{member.role}</Text>
               <Text style={styles.keeperName}>{member.name}</Text>
-            </View>
+            </Pressable>
           ))}
         </View>
 
@@ -114,17 +120,20 @@ export default function AboutStudioScreen() {
           <Text style={styles.sectionTitle}>
             Faculty <Text style={styles.sectionAccent}>Guidance</Text>
           </Text>
-          <View style={styles.keeperCard}>
-            <Image source={require('../assets/images/facultyphoto.jpg')} style={styles.keeperImage} contentFit="cover" transition={120} />
+          <Pressable 
+            onPress={() => Linking.openURL('https://www.linkedin.com/in/dr-mukesh-mann-b090ba294/')}
+            style={({ pressed }) => [styles.keeperCard, pressed && { opacity: 0.7 }]}
+          >
+            <Image source={require('../../assets/images/facultyphoto.jpg')} style={styles.keeperImage} contentFit="cover" transition={120} />
             <Text style={styles.keeperRole}>Faculty Mentor</Text>
             <Text style={styles.keeperName}>Dr. Mukesh Mann</Text>
             <Text style={styles.mentorSubline}>Head Of Department</Text>
             <Text style={styles.mentorSubline}>Information Technology</Text>
-          </View>
+          </Pressable>
         </View>
 
         <View style={styles.footerSection}>
-          <Text style={styles.footerMeta}>© 2026 Instadium Media</Text>
+          <Text style={styles.footerMeta}>© 2026 Instadium</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -137,7 +146,7 @@ const styles = StyleSheet.create({
     backgroundColor: landingColors.blush,
   },
   content: {
-    paddingBottom: 26,
+    paddingBottom: 10,
   },
   heroSection: {
     paddingHorizontal: 20,

@@ -3,7 +3,7 @@ import { Alert, FlatList, ListRenderItemInfo, Platform, Pressable, StyleSheet, T
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import * as Notifications from 'expo-notifications';
+
 import * as Location from 'expo-location';
 import * as Linking from 'expo-linking';
 import { EditorialDivider } from '@/components/landing/EditorialDivider';
@@ -14,7 +14,8 @@ import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { NearbyStadiums } from '@/components/landing/NearbyStadiums';
 import { NativeSearchStrip } from '@/components/landing/NativeSearchStrip';
 import { SportsGrid } from '@/components/landing/SportsGrid';
-import { getLocalStadiumImage } from '@/components/landing/data';
+import { EntranceView } from '@/components/ui/EntranceView';
+import { resolveStadiumImage } from '@/components/landing/data';
 import { landingColors, landingFonts } from '@/components/landing/theme';
 import { useFeaturedStadiums } from '@/components/landing/useFeaturedStadiums';
 import { useAuth } from '@/hooks/use-auth';
@@ -40,6 +41,7 @@ type ApiStadium = {
   longitude?: number | null;
   galleryImages?: ApiGalleryImage[] | null;
   sportsPlayed?: ApiSport[];
+  players?: Array<{ id: string; name: string }>;
   upcomingMatches?: unknown;
 };
 
@@ -48,11 +50,7 @@ function getApiBaseUrl() {
   return base ? base.replace(/\/$/, '') : null;
 }
 
-function firstGalleryUrl(stadium: ApiStadium) {
-  return Array.isArray(stadium.galleryImages)
-    ? stadium.galleryImages.find((item) => typeof item?.url === 'string' && item.url)?.url
-    : undefined;
-}
+
 
 function toRad(value: number) {
   return (value * Math.PI) / 180;
@@ -95,8 +93,6 @@ export default function HomeScreen() {
   const [allStadiums, setAllStadiums] = useState<ApiStadium[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('All');
-  const [quickResults, setQuickResults] = useState<NearbyStadium[]>([]);
-  const [quickResultsTitle, setQuickResultsTitle] = useState('');
 
   useEffect(() => {
     const base = getApiBaseUrl();
@@ -121,13 +117,74 @@ export default function HomeScreen() {
 
   const searchSuggestions = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) {
-      return [] as Array<{ id: string; name: string; city: string }>;
+    if (!q || q.length < 2) {
+      return [];
     }
 
-    return allStadiums
-      .filter((item) => item.name.toLowerCase().includes(q) || item.city.toLowerCase().includes(q))
-      .map((item) => ({ id: item.id, name: item.name, city: item.city }));
+    const results: Array<{ id: string; name: string; city: string; type?: 'stadium' | 'sport' | 'player'; matchTerm?: string }> = [];
+
+    // 1. Stadium Name or City Match
+    allStadiums.forEach((stadium) => {
+      if (stadium.name.toLowerCase().includes(q) || stadium.city.toLowerCase().includes(q)) {
+        results.push({
+          id: stadium.id,
+          name: stadium.name,
+          city: stadium.city,
+          type: 'stadium',
+        });
+      }
+    });
+
+    // 2. Unique Sports Match (only if the query matches the sport name)
+    const sportMap = new Map<string, any>();
+    allStadiums.forEach(s => {
+      (s.sportsPlayed || []).forEach(sport => {
+        if (sport.name.toLowerCase().includes(q)) {
+          sportMap.set(sport.id, sport);
+        }
+      });
+    });
+    sportMap.forEach((sport, id) => {
+      results.push({
+        id: id,
+        name: sport.name,
+        city: 'Sport',
+        type: 'sport',
+        matchTerm: sport.name,
+      });
+    });
+
+    // 3. Unique Players Match (only if the query matches the player name)
+    const playerMap = new Map<string, any>();
+    allStadiums.forEach(s => {
+      (s.players || []).forEach(player => {
+        if (player.name.toLowerCase().includes(q)) {
+          playerMap.set(player.id, player);
+        }
+      });
+    });
+    playerMap.forEach((player, id) => {
+      results.push({
+        id: id,
+        name: player.name,
+        city: 'Player',
+        type: 'player',
+        matchTerm: player.name,
+      });
+    });
+
+    // Sort: Exact match first, then Stadiums first, then alphabetical
+    return results.sort((a, b) => {
+      const aExact = a.name.toLowerCase() === q;
+      const bExact = b.name.toLowerCase() === q;
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+
+      if (a.type === 'stadium' && b.type !== 'stadium') return -1;
+      if (a.type !== 'stadium' && b.type === 'stadium') return 1;
+
+      return a.name.localeCompare(b.name);
+    }).slice(0, 10);
   }, [allStadiums, searchQuery]);
 
   const filterOptions = useMemo(() => {
@@ -142,66 +199,7 @@ export default function HomeScreen() {
     return ['All', ...Array.from(fromSports).sort((a, b) => a.localeCompare(b))];
   }, [allStadiums]);
 
-  const applyFilterResults = useCallback(
-    (query: string, filter: string) => {
-      const q = query.trim().toLowerCase();
-      const filtered = allStadiums.filter((item) => {
-        const queryOk = !q || item.name.toLowerCase().includes(q) || item.city.toLowerCase().includes(q);
-        const sportOk =
-          filter === 'All' || (item.sportsPlayed || []).some((sport) => sport.name.toLowerCase() === filter.toLowerCase());
-        return queryOk && sportOk;
-      });
 
-      setQuickResultsTitle(q || filter !== 'All' ? 'Search Results' : '');
-      setQuickResults(
-        filtered.slice(0, 6).map((item, idx) => ({
-          id: item.id,
-          name: item.name,
-          city: item.city,
-          distance: item.capacity ? `${Intl.NumberFormat('en-IN').format(item.capacity)} seats` : `${idx + 1} of ${filtered.length}`,
-          image: firstGalleryUrl(item) || '',
-        }))
-      );
-    },
-    [allStadiums]
-  );
-
-  const requestAndScheduleNotifications = useCallback(async () => {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission required', 'Please allow notifications to get upcoming match alerts.');
-      return;
-    }
-
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.DEFAULT,
-      });
-    }
-
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'InStadium Reminder',
-        body: 'Plan your next visit and check upcoming matches near you.',
-      },
-      trigger:
-        Platform.OS === 'android'
-          ? {
-              type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-              seconds: 5,
-              repeats: false,
-              channelId: 'default',
-            }
-          : {
-              type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-              seconds: 5,
-              repeats: false,
-            },
-    });
-
-    Alert.alert('Notifications enabled', 'You will now receive match and visit reminders.');
-  }, []);
 
   const requestLocationAndShowNearby = useCallback(async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -240,87 +238,14 @@ export default function HomeScreen() {
       Alert.alert('Permission required', 'Location permission is needed to find nearby stadiums.');
       return;
     }
-    router.push('/find-stadium');
+    router.push('/find');
   }, [router]);
 
   const openExplore = useCallback((params?: Record<string, string>) => {
     router.push({ pathname: '/explore', params: params || {} });
   }, [router]);
 
-  const handleNavbarTabPress = useCallback(
-    (tab: 'Stadiums' | 'Sports' | 'About' | 'Find Stadium') => {
-      if (tab === 'Stadiums') {
-        openExplore();
-        return;
-      }
-
-      if (tab === 'Sports') {
-        router.push('/sports');
-        return;
-      }
-
-      if (tab === 'About') {
-        router.push('/about-studio');
-        return;
-      }
-
-      openFindStadiumPage();
-    },
-    [openExplore, openFindStadiumPage, router]
-  );
-
-  const handleChipPress = useCallback(
-    async (chip: 'Near me' | 'Live events' | 'Top rated') => {
-      if (chip === 'Near me') {
-        await requestLocationAndShowNearby();
-        return;
-      }
-
-      if (chip === 'Top rated') {
-        const ranked = [...allStadiums]
-          .sort((a, b) => (b.capacity || 0) - (a.capacity || 0))
-          .slice(0, 6)
-          .map((item) => ({
-            id: item.id,
-            name: item.name,
-            city: item.city,
-            distance: item.capacity ? `${Intl.NumberFormat('en-IN').format(item.capacity)} seats` : 'Top rated',
-            image: firstGalleryUrl(item) || '',
-          }));
-        setQuickResultsTitle('Top Rated Stadiums');
-        setQuickResults(ranked);
-        return;
-      }
-
-      const liveEventStadiums = allStadiums
-        .filter((item) => parseMatches(item.upcomingMatches).length > 0)
-        .slice(0, 6)
-        .map((item) => ({
-          id: item.id,
-          name: item.name,
-          city: item.city,
-          distance: 'Upcoming match',
-          image: firstGalleryUrl(item) || '',
-        }));
-      setQuickResultsTitle('Live Events');
-      setQuickResults(liveEventStadiums);
-    },
-    [allStadiums, requestLocationAndShowNearby]
-  );
-
-  const handleHeroPillPress = useCallback(async (pill: 'Live Events' | 'Nearby' | 'Top Rated') => {
-    if (pill === 'Nearby') {
-      await requestLocationAndShowNearby();
-      return;
-    }
-
-    if (pill === 'Live Events') {
-      await handleChipPress('Live events');
-      return;
-    }
-
-    await handleChipPress('Top rated');
-  }, [handleChipPress, requestLocationAndShowNearby]);
+  // Removed handleNavbarTabPress as it is now in the bottom tab bar.
 
   const handleFooterLinkPress = useCallback(
     (link: 'Stadiums' | 'Our Story' | 'Sports Directory' | 'Find Stadium') => {
@@ -330,7 +255,7 @@ export default function HomeScreen() {
       }
 
       if (link === 'Our Story') {
-        router.push('/about-studio');
+        router.push('/about');
         return;
       }
 
@@ -348,33 +273,47 @@ export default function HomeScreen() {
     ({ item }: ListRenderItemInfo<LandingSectionKey>) => {
       switch (item) {
         case 'sports':
-          return <SportsGrid horizontalPadding={sidePadding} sportsData={sports} />;
+          return (
+            <EntranceView delay={0}>
+              <SportsGrid horizontalPadding={sidePadding} sportsData={sports} />
+            </EntranceView>
+          );
         case 'divider':
-          return <EditorialDivider horizontalPadding={sidePadding} />;
+          return (
+            <EntranceView delay={0}>
+              <EditorialDivider horizontalPadding={sidePadding} />
+            </EntranceView>
+          );
         case 'featured':
           return (
-            <FeaturedStadiums
-              horizontalPadding={sidePadding}
-              featured={featured}
-              onViewAllPress={() => router.push('/explore')}
-              onStadiumPress={(stadiumId) => router.push(`/stadium/${encodeURIComponent(stadiumId)}`)}
-            />
+            <EntranceView delay={0}>
+              <FeaturedStadiums
+                horizontalPadding={sidePadding}
+                featured={featured}
+                onViewAllPress={() => router.push('/explore')}
+                onStadiumPress={(stadiumId) => router.push(`/stadium/${encodeURIComponent(stadiumId)}`)}
+              />
+            </EntranceView>
           );
         case 'nearby':
           return (
-            <NearbyStadiums
-              horizontalPadding={sidePadding}
-              nearbyData={nearby}
-              onStadiumPress={(stadiumId) => router.push(`/stadium/${encodeURIComponent(stadiumId)}`)}
-            />
+            <EntranceView delay={0}>
+              <NearbyStadiums
+                horizontalPadding={sidePadding}
+                nearbyData={nearby}
+                onStadiumPress={(stadiumId) => router.push(`/stadium/${encodeURIComponent(stadiumId)}`)}
+              />
+            </EntranceView>
           );
         case 'footer':
           return (
-            <LandingFooter
-              horizontalPadding={sidePadding}
-              onPrimaryActionPress={() => router.push('/inquiries')}
-              onLinkPress={handleFooterLinkPress}
-            />
+            <EntranceView delay={0}>
+              <LandingFooter
+                horizontalPadding={sidePadding}
+                onPrimaryActionPress={() => router.push('/inquiries')}
+                onLinkPress={handleFooterLinkPress}
+              />
+            </EntranceView>
           );
         default:
           return null;
@@ -383,97 +322,54 @@ export default function HomeScreen() {
     [featured, handleFooterLinkPress, nearby, router, sidePadding, sports]
   );
 
-  const renderHeader = useCallback(
-    () => (
-      <View style={styles.sectionsWrap}>
-        <LandingNavbar
-          horizontalPadding={sidePadding}
-          onScanPress={() => router.push('/scan')}
-          onSearchPress={() => router.push('/search-stadium')}
-          onNotificationsPress={requestAndScheduleNotifications}
-          onTabPress={handleNavbarTabPress}
-          onProfilePress={() => router.push('/auth')}
-          isAuthenticated={isAuthenticated}
-        />
-        <NativeSearchStrip
-          horizontalPadding={sidePadding}
-          searchQuery={searchQuery}
-          onSearchQueryChange={(value) => {
-            setSearchQuery(value);
-            applyFilterResults(value, selectedFilter);
-          }}
-          searchResults={searchSuggestions}
-          onSelectSearchResult={(result) => {
-            setSearchQuery(result.name);
-            router.push(`/stadium/${encodeURIComponent(result.id)}`);
-          }}
-          filterOptions={filterOptions}
-          selectedFilter={selectedFilter}
-          onFilterSelect={(filter) => {
-            setSelectedFilter(filter);
-            applyFilterResults(searchQuery, filter);
-          }}
-          onChipPress={handleChipPress}
-        />
-        <HeroSection
-          horizontalPadding={sidePadding}
-          isTablet={isTablet}
-          onExplorePress={() => openExplore()}
-          onQuickTourPress={() => router.push('/sports')}
-          onQuickPillPress={handleHeroPillPress}
-        />
-
-        {quickResultsTitle ? (
-          <View style={[styles.quickResultSection, { paddingHorizontal: sidePadding }]}> 
-            <Text style={styles.quickResultKicker}>Smart Results</Text>
-            <Text style={styles.quickResultTitle}>{quickResultsTitle}</Text>
-            {quickResults.length > 0 ? (
-              quickResults.map((item) => (
-                <Pressable
-                  key={item.id}
-                  style={({ pressed }) => [styles.quickResultCard, pressed && styles.quickResultCardPressed]}
-                  onPress={() => router.push(`/stadium/${encodeURIComponent(item.id)}`)}>
-                  <Image source={getLocalStadiumImage(typeof item.image === 'string' ? item.image : undefined)} style={styles.quickResultImage} contentFit="cover" />
-                  <View style={styles.quickResultMeta}>
-                    <Text style={styles.quickResultName}>{item.name}</Text>
-                    <Text style={styles.quickResultSub}>{item.city} • {item.distance}</Text>
-                  </View>
-                </Pressable>
-              ))
-            ) : (
-              <Text style={styles.quickResultEmpty}>No matching stadiums found.</Text>
-            )}
-          </View>
-        ) : null}
-      </View>
-    ),
-    [
-      applyFilterResults,
-      filterOptions,
-      handleChipPress,
-      handleHeroPillPress,
-      handleNavbarTabPress,
-      isAuthenticated,
-      isTablet,
-      quickResults,
-      quickResultsTitle,
-      requestAndScheduleNotifications,
-      router,
-      searchQuery,
-      searchSuggestions,
-      selectedFilter,
-      sidePadding,
-    ]
-  );
-
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
       <FlatList
         style={styles.container}
         data={sections}
         keyExtractor={(item) => item}
         renderItem={renderSection}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={
+          <View style={styles.sectionsWrap}>
+            <EntranceView delay={0}>
+              <LandingNavbar
+                horizontalPadding={sidePadding}
+                onScanPress={() => router.push('/scan')}
+                onProfilePress={() => router.push('/auth')}
+                isAuthenticated={isAuthenticated}
+              />
+            </EntranceView>
+            <EntranceView delay={0}>
+              <NativeSearchStrip
+                horizontalPadding={sidePadding}
+                searchQuery={searchQuery}
+                onSearchQueryChange={setSearchQuery}
+                searchResults={searchSuggestions}
+                onSelectSearchResult={(result) => {
+                  setSearchQuery(result.name);
+                  if (result.type === 'player') {
+                    router.push(`/player/${encodeURIComponent(result.id)}`);
+                  } else if (result.type === 'sport') {
+                    router.push(`/sport/${encodeURIComponent(result.id)}`);
+                  } else {
+                    router.push(`/stadium/${encodeURIComponent(result.id)}`);
+                  }
+                }}
+                filterOptions={filterOptions}
+                selectedFilter={selectedFilter}
+                onFilterSelect={setSelectedFilter}
+              />
+            </EntranceView>
+            <EntranceView delay={0}>
+              <HeroSection
+                horizontalPadding={sidePadding}
+                isTablet={isTablet}
+                onExplorePress={() => openExplore()}
+                onQuickTourPress={() => router.push('/sports')}
+              />
+            </EntranceView>
+          </View>
+        }
         contentContainerStyle={styles.content}
         initialNumToRender={3}
         maxToRenderPerBatch={3}
@@ -497,7 +393,7 @@ const styles = StyleSheet.create({
     backgroundColor: landingColors.blush,
   },
   content: {
-    paddingBottom: 30,
+    paddingBottom: 10,
   },
   sectionsWrap: {
     backgroundColor: landingColors.blush,
@@ -561,5 +457,18 @@ const styles = StyleSheet.create({
     color: landingColors.muted,
     fontSize: 12,
     fontFamily: landingFonts.sansRegular,
+  },
+  miniBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(129,0,0,0.05)',
+  },
+  miniBadgeText: {
+    fontSize: 8,
+    textTransform: 'uppercase',
+    color: landingColors.rose,
+    fontFamily: landingFonts.sansSemiBold,
+    letterSpacing: 0.5,
   },
 });

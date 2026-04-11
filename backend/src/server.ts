@@ -15,6 +15,7 @@ import pressRouter from './routes/press.js';
 import qrRouter from './routes/qr.js';
 import sportsRouter from './routes/sports.js';
 import stadiumsRouter from './routes/stadiums.js';
+import visitsRouter from './routes/visits.js';
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/press', pressRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/debug', debugRouter);
+app.use('/api/visits', visitsRouter);
 app.use('/api/client-portal', clientPortalRouter);
 
 app.use((_req, res) => {

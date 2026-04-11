@@ -55,7 +55,7 @@ export default function PressMediaScreen() {
         </View>
 
         <View style={styles.footerSection}>
-          <Text style={styles.footerMeta}>© 2026 Instadium Media</Text>
+          <Text style={styles.footerMeta}>© 2026 Instadium</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

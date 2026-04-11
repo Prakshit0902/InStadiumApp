@@ -14,8 +14,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import * as Location from 'expo-location';
 import { getApiBaseUrl } from '@/components/stadium/utils';
 import { landingColors, landingFonts } from '@/components/landing/theme';
@@ -89,15 +90,15 @@ const SUGGESTION_CHIPS: SuggestionChip[] = [
 ];
 
 const chatbotTheme = {
-  panelBackground: '#FFFDF9',
-  panelBorder: 'rgba(129, 0, 0, 0.14)',
-  headerBackground: 'rgba(129, 0, 0, 0.10)',
-  headerBorder: 'rgba(129, 0, 0, 0.18)',
+  panelBackground: landingColors.blush,
+  panelBorder: 'rgba(129, 0, 0, 0.18)',
+  headerBackground: 'rgba(129, 0, 0, 0.08)',
+  headerBorder: 'rgba(129, 0, 0, 0.20)',
   userBubble: landingColors.rose,
   assistantBubble: '#FFFFFF',
   assistantBorder: 'rgba(129, 0, 0, 0.16)',
   iconMuted: landingColors.plum,
-  inputBorder: 'rgba(129, 0, 0, 0.18)',
+  inputBorder: 'rgba(129, 0, 0, 0.20)',
 } as const;
 
 function generateId(prefix: string) {
@@ -142,6 +143,7 @@ function getSpeechModule(): RuntimeSpeechModule | null {
 
 export function FloatingChatbot() {
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [recognizing, setRecognizing] = useState(false);
@@ -151,6 +153,7 @@ export function FloatingChatbot() {
   const [currentLocation, setCurrentLocation] = useState<ChatLocation | null>(null);
   const [locationPrompted, setLocationPrompted] = useState(false);
   const keyboardOffset = useRef(new Animated.Value(0)).current;
+  const visibility = useRef(new Animated.Value(0)).current;
   const speechModule = getSpeechModule();
   const voiceAvailable = Boolean(speechModule?.start && speechModule?.stop && speechModule?.addListener);
 
@@ -221,6 +224,25 @@ export function FloatingChatbot() {
       onHide.remove();
     };
   }, [keyboardOffset]);
+
+  const toggleChat = useCallback((show: boolean) => {
+    if (show) {
+      setOpen(true);
+      Animated.spring(visibility, {
+        toValue: 1,
+        useNativeDriver: true,
+        damping: 18,
+        stiffness: 120,
+      }).start();
+    } else {
+      Animated.timing(visibility, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.inOut(Easing.quad),
+        useNativeDriver: true,
+      }).start(() => setOpen(false));
+    }
+  }, [visibility]);
 
   const resolveLocation = useCallback(async (): Promise<ChatLocation | null> => {
     if (currentLocation) {
@@ -376,23 +398,60 @@ export function FloatingChatbot() {
   const lastThreeMessages = useMemo(() => messages.slice(-10), [messages]);
   const shouldShowSuggestions = !loading && (messages.length <= 2 || !draft.trim());
 
+  if (pathname === '/scan') {
+    return null;
+  }
+
   return (
     <View pointerEvents="box-none" style={styles.root}>
-      {open && <Pressable style={styles.backdrop} onPress={() => setOpen(false)} />}
+      {open && (
+        <Animated.View
+          style={[
+            styles.backdrop,
+            {
+              opacity: visibility.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 1],
+              }),
+            },
+          ]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => toggleChat(false)} />
+        </Animated.View>
+      )}
 
       {open ? (
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 18 : 8}
           style={styles.panelWrap}>
-          <Animated.View style={[styles.panel, { transform: [{ translateY: Animated.multiply(keyboardOffset, -1) }] }]}>
+          <Animated.View
+            style={[
+              styles.panel,
+              {
+                opacity: visibility,
+                transform: [
+                  {
+                    scale: visibility.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.85, 1],
+                    }),
+                  },
+                  {
+                    translateY: visibility.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [60, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}>
             <View style={styles.headerRow}>
               <View>
-                <Text style={styles.headerTitle}>InStadium Assistant</Text>
+                <Text style={styles.headerTitle}>InStadium AI</Text>
                 <Text style={styles.headerSub}>Players, stadiums, sports</Text>
               </View>
-              <Pressable hitSlop={8} onPress={() => setOpen(false)}>
-                <Ionicons name="close" size={20} color={landingColors.plum} />
+              <Pressable hitSlop={8} onPress={() => toggleChat(false)}>
+                <Ionicons name="close" size={20} color={landingColors.blush} />
               </Pressable>
             </View>
 
@@ -504,7 +563,11 @@ export function FloatingChatbot() {
         </KeyboardAvoidingView>
       ) : (
         <Pressable style={styles.fab} onPress={() => void handleOpenChat()}>
-          <Ionicons name="chatbubble-ellipses" size={22} color="#FFFFFF" />
+          <Image
+            source={{ uri: 'https://res.cloudinary.com/daud2uqqf/image/upload/v1775915480/logobot_k3d6xa.gif' }}
+            style={{ width: 40, height: 40 }}
+            contentFit="contain"
+          />
         </Pressable>
       )}
     </View>
@@ -524,18 +587,20 @@ const styles = StyleSheet.create({
   },
   fab: {
     marginRight: 18,
-    marginBottom: 26,
+    marginBottom: 104,
     height: 56,
     width: 56,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: landingColors.rose,
-    shadowColor: '#4A1D1D',
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
+    backgroundColor: '#810000',
+    borderWidth: 1.2,
+    borderColor: 'rgba(129, 0, 0, 0.15)',
+    shadowColor: landingColors.plum,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
+    elevation: 6,
   },
   panelWrap: {
     width: '100%',
@@ -560,21 +625,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 12,
-    backgroundColor: chatbotTheme.headerBackground,
+    backgroundColor: '#810000',
     borderBottomWidth: 1,
-    borderBottomColor: chatbotTheme.headerBorder,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   headerTitle: {
-    fontSize: 16,
-    color: landingColors.plum,
-    fontFamily: landingFonts.serifSemiBold,
+    fontSize: 18,
+    color: landingColors.blush,
+    fontFamily: landingFonts.serifBold,
   },
   headerSub: {
     marginTop: 2,
     fontSize: 12,
-    color: landingColors.muted,
-    letterSpacing: 0.3,
-    fontFamily: landingFonts.sansRegular,
+    color: 'rgba(238, 235, 221, 0.85)',
+    letterSpacing: 0.5,
+    fontFamily: landingFonts.sansSemiBold,
+    textTransform: 'uppercase',
   },
   messagesArea: {
     flex: 1,
@@ -584,15 +650,22 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   bubble: {
-    maxWidth: '90%',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    maxWidth: '85%',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     gap: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   userBubble: {
     alignSelf: 'flex-end',
     backgroundColor: chatbotTheme.userBubble,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderBottomLeftRadius: 24,
     borderBottomRightRadius: 4,
   },
   assistantBubble: {
@@ -600,6 +673,9 @@ const styles = StyleSheet.create({
     backgroundColor: chatbotTheme.assistantBubble,
     borderWidth: 1,
     borderColor: chatbotTheme.assistantBorder,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderBottomRightRadius: 24,
     borderBottomLeftRadius: 4,
   },
   loadingBubble: {
@@ -635,9 +711,10 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   structuredTitle: {
-    color: landingColors.plum,
-    fontFamily: landingFonts.sansSemiBold,
-    fontSize: 12,
+    color: '#810000',
+    fontFamily: landingFonts.serifBold,
+    fontSize: 14,
+    marginBottom: 4,
   },
   structuredItem: {
     color: landingColors.muted,
@@ -646,11 +723,15 @@ const styles = StyleSheet.create({
     fontFamily: landingFonts.sansRegular,
   },
   linkCard: {
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(129, 0, 0, 0.18)',
-    backgroundColor: 'rgba(129, 0, 0, 0.06)',
-    padding: 10,
+    borderColor: 'rgba(129, 0, 0, 0.12)',
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    shadowColor: '#810000',
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   linkTitle: {
     color: landingColors.plum,
@@ -665,7 +746,7 @@ const styles = StyleSheet.create({
   },
   linkPath: {
     marginTop: 6,
-    color: landingColors.rose,
+    color: '#810000',
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 0.85,
@@ -687,11 +768,15 @@ const styles = StyleSheet.create({
   },
   suggestionChip: {
     borderWidth: 1,
-    borderColor: 'rgba(129, 0, 0, 0.16)',
+    borderColor: 'rgba(129, 0, 0, 0.12)',
     borderRadius: 999,
-    backgroundColor: 'rgba(129, 0, 0, 0.08)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
   },
   suggestionChipText: {
     fontSize: 12,

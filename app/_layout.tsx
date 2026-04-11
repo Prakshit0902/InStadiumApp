@@ -8,7 +8,7 @@ import * as Notifications from 'expo-notifications';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import 'react-native-reanimated';
 import { ClerkProvider } from '@clerk/clerk-expo';
-import { tokenCache } from '@clerk/clerk-expo/token-cache';
+import { tokenCache } from '@/lib/token-cache';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Montserrat_400Regular,
@@ -28,6 +28,7 @@ import {
 import { AuthProvider } from '@/providers/auth-provider';
 import { FloatingChatbot } from '@/components/chat/FloatingChatbot';
 import { landingColors, landingFonts } from '@/components/landing/theme';
+import { BrandedLoadingScreen } from '@/components/ui/BrandedLoadingScreen';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -93,7 +94,7 @@ export default function RootLayout() {
   });
 
   if (!loaded) {
-    return null;
+    return <BrandedLoadingScreen message="Initializing Experience" />;
   }
 
   return (
@@ -105,20 +106,19 @@ export default function RootLayout() {
               headerBackTitleVisible: false,
               headerBackButtonDisplayMode: 'minimal',
               header: (props) => <InStadiumHeader {...props} />,
+              animation: 'slide_from_right',
+              contentStyle: { backgroundColor: landingColors.blush },
             }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="scan" options={{ title: 'Scan Stadium QR' }} />
             <Stack.Screen name="auth" options={{ title: 'Account' }} />
-            <Stack.Screen name="sports" options={{ headerShown: true, title: 'Sports' }} />
             <Stack.Screen name="sport/[id]" options={{ headerShown: true, title: 'Sport' }} />
             <Stack.Screen name="stadium/[id]" options={{ headerShown: true, title: 'Stadium' }} />
             <Stack.Screen name="player/[id]" options={{ headerShown: true, title: 'Player' }} />
             <Stack.Screen name="portfolio" options={{ headerShown: true, title: 'Portfolio' }} />
-            <Stack.Screen name="about-studio" options={{ headerShown: true, title: 'About the Studio' }} />
             <Stack.Screen name="press-media" options={{ headerShown: true, title: 'Press and Media' }} />
             <Stack.Screen name="inquiries" options={{ headerShown: true, title: 'Inquiries' }} />
             <Stack.Screen name="search-stadium" options={{ headerShown: true, title: 'Search Stadium' }} />
-            <Stack.Screen name="find-stadium" options={{ headerShown: true, title: 'Find Stadium' }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
           <FloatingChatbot />

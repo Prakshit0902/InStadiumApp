@@ -13,8 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { getLocalStadiumImage } from '@/components/landing/data';
+import { getLocalStadiumImage, resolveStadiumImage } from '@/components/landing/data';
 import { landingColors, landingFonts } from '@/components/landing/theme';
+import { GridLoader } from '@/components/ui/GridLoader';
 
 type ApiSport = {
   id: string;
@@ -39,31 +40,7 @@ function getApiBaseUrl() {
   return base ? base.replace(/\/$/, '') : null;
 }
 
-function getPrimaryImage(stadium: ApiStadium) {
-  const firstGalleryUrl = Array.isArray(stadium.galleryImages)
-    ? stadium.galleryImages.find((item) => {
-        if (typeof item === 'string') {
-          return item.trim().length > 0;
-        }
 
-        if (item && typeof item === 'object' && 'url' in item) {
-          const url = (item as { url?: unknown }).url;
-          return typeof url === 'string' && url.trim().length > 0;
-        }
-
-        return false;
-      })
-    : undefined;
-
-  const resolvedUrl =
-    typeof firstGalleryUrl === 'string'
-      ? firstGalleryUrl
-      : firstGalleryUrl && typeof firstGalleryUrl === 'object' && 'url' in firstGalleryUrl
-        ? ((firstGalleryUrl as { url?: unknown }).url as string | undefined)
-        : undefined;
-
-  return getLocalStadiumImage(resolvedUrl);
-}
 
 function formatCapacity(value?: number | null) {
   if (!value || Number.isNaN(value)) {
@@ -236,7 +213,11 @@ export default function ExploreScreen() {
               </View>
             ) : null}
 
-            {loading ? <MemoLoadingGrid /> : null}
+            {loading && stadiums.length === 0 ? (
+              <View style={{ height: 400, justifyContent: 'center', alignItems: 'center' }}>
+                <GridLoader size={100} color={landingColors.rose} speed={1.5} />
+              </View>
+            ) : null}
           </View>
         }
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={landingColors.rose} />}
@@ -247,7 +228,7 @@ export default function ExploreScreen() {
             <Pressable
               onPress={() => router.push(`/stadium/${encodeURIComponent(String(item.id))}`)}
               style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-              <Image source={getPrimaryImage(item)} style={styles.cardImage} contentFit="cover" transition={100} />
+              <Image source={resolveStadiumImage(item)} style={styles.cardImage} contentFit="cover" transition={100} />
 
               <View style={styles.metaRow}>
                 <Text style={styles.city}>{item.city}</Text>
@@ -284,11 +265,7 @@ export default function ExploreScreen() {
         }
       />
 
-      {loading ? (
-        <View style={styles.loadingOverlay} pointerEvents="none">
-          <ActivityIndicator size="small" color={landingColors.rose} />
-        </View>
-      ) : null}
+      {/* Removed loading overlay in favor of central loader */}
     </SafeAreaView>
   );
 }
@@ -413,6 +390,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     top: 14,
+    backgroundColor: landingColors.blush,
+    padding: 6,
+    borderRadius: 10,
+    zIndex: 10,
   },
   grid: {
     gap: 14,

@@ -34,6 +34,7 @@ router.get('/', async (req, res) => {
         : undefined,
       include: {
         sportsPlayed: true,
+        players: true,
       },
       orderBy: {
         capacity: 'desc',

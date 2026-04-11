@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useContext } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
+import { AuthContext } from '@/providers/auth-provider';
 
 function getApiBaseUrl() {
   const base = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -44,6 +46,7 @@ export default function ScanScreen() {
   const [isResolving, setIsResolving] = useState(false);
   const [isScanned, setIsScanned] = useState(false);
   const apiBaseUrl = useMemo(() => getApiBaseUrl(), []);
+  const auth = useContext(AuthContext);
 
   const onScanned = useCallback(
     async ({ data }: { data: string }) => {
@@ -75,6 +78,11 @@ export default function ScanScreen() {
             pathname: '/stadium/[id]',
             params: { id: stadiumId, welcome: '1' },
           });
+
+          // Record visit in background if authenticated
+          if (auth?.isAuthenticated) {
+            void auth.recordVisit(stadiumId);
+          }
           return;
         }
       }
@@ -105,6 +113,11 @@ export default function ScanScreen() {
           pathname: '/stadium/[id]',
           params: { id: stadiumId, welcome: '1' },
         });
+
+        // Record visit in background if authenticated
+        if (auth?.isAuthenticated) {
+          void auth.recordVisit(stadiumId);
+        }
       } catch {
         Alert.alert('Unable to Resolve QR', 'Could not resolve this stadium QR. Try again.', [
           { text: 'Scan Again', onPress: () => setIsScanned(false) },
