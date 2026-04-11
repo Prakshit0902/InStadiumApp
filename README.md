@@ -4,7 +4,7 @@ InStadium is a cross-platform stadium discovery and fan-engagement platform buil
 
 - Mobile-first exploration of stadiums, sports, players, and upcoming matches
 - Assisted discovery using search, geolocation, and QR-based deep links
-- Content and operations support through backend APIs for inquiries, events, media, and client workflows
+- Content and operations support through backend APIs for discovery, QR, chat, auth, and client workflows
 
 This README is architecture-first and flow-first. It gives a complete high-level view with enough technical baseline for production readiness, while leaving clear space for deeper technical appendices you can add later.
 
@@ -15,14 +15,14 @@ This README is architecture-first and flow-first. It gives a complete high-level
 - Helps fans find stadiums quickly based on sport, city, and proximity
 - Offers rich stadium detail pages with galleries, timelines, match windows, and nearby context
 - Enables instant stadium access via QR scans and deep links
-- Supports communication loops through inquiries, press/media, and event operations
+- Supports guided fan interaction through chat assistance, discovery flows, and QR operations
 - Provides authentication-aware experiences for protected capabilities
 
 ### Who uses InStadium
 
 - Sports fans and visitors
-- Team/media operations
-- Event and inquiry administrators
+- Platform operations teams
+- Platform operators and client-portal users
 - Partner/client users through portal-facing endpoints
 
 ## 2) System Context Diagram
@@ -35,7 +35,6 @@ Use this as the top-level reference before looking at internal architecture.
 flowchart TB
       fan[Fan / Visitor]
       admin[Admin / Ops User]
-      media[Press / Media]
       mobile[InStadium Mobile App\nExpo + React Native]
       backend[InStadium Backend API\nExpress + TypeScript]
       db[(Neon Postgres)]
@@ -46,7 +45,6 @@ flowchart TB
 
       fan --> mobile
       admin --> mobile
-      media --> mobile
 
       mobile --> backend
       mobile --> auth
@@ -75,7 +73,7 @@ flowchart LR
 
       subgraph API Layer
          server[Express Server]
-         routes[Route Modules\nstadiums, sports, players, qr, chat, events, inquiries, press, auth, debug, client-portal]
+         routes[Route Modules\nstadiums, sports, players, qr, chat, auth, debug, client-portal]
       end
 
       subgraph Data + Integrations
@@ -102,76 +100,32 @@ It is intentionally grouped by business function so product, design, and enginee
 The category blocks use a consistent light palette for clear readability.
 
 ```mermaid
-flowchart TB
-      root([InStadium App])
-
-      discovery[Discovery]
-      experience[Stadium Experience]
-      engagement[Engagement]
-      access[Access]
-      entry[Entry Points]
-
-      d1[Explore Feed]
-      d2[Sports Index]
-      d3[Search Stadium]
-      d4[Find Stadium Nearby]
-
-      e1[Hero and Overview]
-      e2[Gallery]
-      e3[Timeline]
-      e4[Matches]
-      e5[Players]
-      e6[Maps and Nearby Places]
-
-      g1[Floating Chatbot]
-      g2[Inquiries]
-      g3[Press and Media]
-      g4[Events]
-
-      a1[Clerk Sign In and Sign Up]
-      a2[Authenticated Endpoints]
-      a3[Client Portal]
-
-      p1[Home Navigation]
-      p2[QR Scan and Resolve]
-      p3[Deep Link Open]
-
-      root --> discovery
-      root --> experience
-      root --> engagement
-      root --> access
-      root --> entry
-
-      discovery --> d1
-      discovery --> d2
-      discovery --> d3
-      discovery --> d4
-
-      experience --> e1
-      experience --> e2
-      experience --> e3
-      experience --> e4
-      experience --> e5
-      experience --> e6
-
-      engagement --> g1
-      engagement --> g2
-      engagement --> g3
-      engagement --> g4
-
-      access --> a1
-      access --> a2
-      access --> a3
-
-      entry --> p1
-      entry --> p2
-      entry --> p3
-
-      style discovery fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
-      style experience fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
-      style engagement fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
-      style access fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
-      style entry fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+mindmap
+      root((InStadium App))
+            Discovery
+                  Explore Feed
+                  Sports Index
+                  Search Stadium
+                  Find Stadium Nearby
+            Stadium Experience
+                  Hero and Overview
+                  Gallery
+                  Timeline
+                  Matches
+                  Players
+                  Maps and Nearby Places
+            Engagement
+                  Floating Chatbot
+                  Stadium Q and A
+                  Matchday Assistance
+            Access
+                  Clerk Sign In and Sign Up
+                  Authenticated Endpoints
+                  Client Portal
+            Entry Points
+                  Home Navigation
+                  QR Scan and Resolve
+                  Deep Link Open
 ```
 
 ## 5) Runtime Architecture (Request Path)
@@ -242,13 +196,11 @@ flowchart TB
       P2((P2 View Stadium Detail))
       P3((P3 Authentication Flow))
       P4((P4 QR Resolve and Open))
-      P5((P5 Inquiry and Engagement))
-      P6((P6 AI Chat Assistance))
+      P5((P5 AI Chat Assistance))
 
       D1[(D1 Stadium Catalog)]
       D2[(D2 User and Access Data)]
-      D3[(D3 Inquiry and Event Records)]
-      D4[(D4 QR Mappings)]
+      D3[(D3 QR Mappings)]
 
       E1[Clerk]
       E2[Location Services]
@@ -259,18 +211,16 @@ flowchart TB
       U --> P3
       U --> P4
       U --> P5
-      U --> P6
 
       P1 <--> D1
       P2 <--> D1
       P3 <--> D2
-      P4 <--> D4
-      P5 <--> D3
-      P6 <--> D1
+      P4 <--> D3
+      P5 <--> D1
 
       P3 <--> E1
       P2 <--> E2
-      P6 <--> E3
+      P5 <--> E3
 ```
 
 ## 7) Primary User Journey Flow
@@ -373,11 +323,11 @@ sequenceDiagram
       A-->>U: Stadium detail displayed
 ```
 
-## 11) Sequence Diagram: Inquiry Submission
+## 11) Sequence Diagram: Client Portal Access
 
-This sequence documents the inquiry creation lifecycle from client form to persistence.
-It is the core business interaction for lead and communication workflows.
-Use this as the baseline for acknowledgment and SLA handling later.
+This sequence shows a protected access path for authenticated portal access.
+It models authenticated entry into client-context data.
+Use this as the baseline for secure portal flow validation.
 
 ```mermaid
 sequenceDiagram
@@ -385,14 +335,17 @@ sequenceDiagram
       participant U as User
       participant A as Mobile App
       participant B as Backend
-      participant D as Inquiry Store
+      participant C as Clerk
+      participant D as Client Context Store
 
-      U->>A: Fill inquiry form
-      A->>B: POST /api/inquiries
-      B->>D: Persist inquiry
-      D-->>B: Created record
-      B-->>A: Success response
-      A-->>U: Confirmation shown
+      U->>A: Open client portal area
+      A->>C: Ensure session token is active
+      C-->>A: Bearer token
+      A->>B: GET /api/client-portal/{clientId}
+      B->>D: Load client-scoped data
+      D-->>B: Portal payload
+      B-->>A: Authorized response
+      A-->>U: Client portal content rendered
 ```
 
 ## 12) State Diagram: App Access and Interaction
@@ -414,7 +367,7 @@ stateDiagram-v2
       AuthFlow --> Authenticated: successful sign in
       AuthFlow --> PublicBrowsing: cancel/fail
 
-      Authenticated --> ProtectedOps: inquiries/events/portal actions
+      Authenticated --> ProtectedOps: portal and admin-safe actions
       ProtectedOps --> Authenticated
       Authenticated --> PublicBrowsing: sign out
 
@@ -440,9 +393,6 @@ flowchart LR
 
       subgraph Protected API Domain
          G[auth me]
-         H[inquiries write/update/read]
-         I[press write/read]
-         J[events CRUD]
          K[client portal]
          L[debug]
          M[qr mappings/generate-all]
@@ -454,9 +404,6 @@ flowchart LR
       D --> EXT[AI/Integration Services]
       E --> DB
       G --> AUTH[Clerk Verification]
-      H --> DB
-      I --> DB
-      J --> DB
       K --> DB
       L --> DB
       M --> DB
@@ -527,7 +474,7 @@ flowchart TB
 - Multi-entry navigation (search, nearby, QR)
 - Assisted conversational support via chatbot surface
 - Role-aware and token-aware protected operations
-- Event and inquiry operations for business workflows
+- Authenticated portal and operational support workflows
 
 ## 17) Technical Baseline (Production Grade)
 
@@ -554,14 +501,14 @@ Detailed technical internals can be expanded in the reserved appendices below.
 ### 17.3 API Domain Summary
 
 - Discovery Domain: stadiums, sports, players
-- Engagement Domain: inquiries, press, events, chat
+- Engagement Domain: chat and contextual assistance
 - Access Domain: auth profile resolution, client portal, admin and debug surfaces
 - Utility Domain: health checks, QR resolve/open/download and mapping generation
 
 ### 17.4 Data Domains (High Level)
 
 - Catalog Data: stadium metadata, sport associations, media assets, match windows
-- Operational Data: inquiries, event records, QR mappings
+- Operational Data: QR mappings and client context records
 - Access Context: claims-backed profile context and protected-route policy inputs
 
 ### 17.5 Security and Access Posture
@@ -660,5 +607,3 @@ These sections are intentionally left for detailed engineering depth so this REA
 - Deep technical appendices: intentionally reserved for next phase
 
 ---
-
-Next expansion can add a formal C4 package, endpoint contract tables, and runbook templates as separate documents under a docs folder.
