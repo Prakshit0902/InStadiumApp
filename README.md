@@ -470,11 +470,13 @@ flowchart TB
 ## 16) Non-Technical Feature Summary
 
 - Stadium discovery and exploration journey
-- Rich stadium content presentation
+- Rich stadium content presentation with locally-curated timelines, match schedules, and nearby landmarks as API fallback
+- Centralised stadium image resolution with three-tier fallback (API → ID map → fuzzy name match)
 - Multi-entry navigation (search, nearby, QR)
 - Assisted conversational support via chatbot surface
 - Role-aware and token-aware protected operations
 - Authenticated portal and operational support workflows
+- Match ticket booking via BookMyShow deep links (tapping any upcoming match opens the relevant BMS search/event page)
 
 ## 17) Technical Baseline (Production Grade)
 
@@ -489,7 +491,7 @@ Detailed technical internals can be expanded in the reserved appendices below.
 - Data Access: Prisma Client with PostgreSQL adapter
 - Primary Database: Neon Postgres
 - Identity and Access: Clerk tokens and claim verification
-- Integrations: Location providers, QR workflows, AI-assisted chat path
+- Integrations: Location providers, QR workflows, AI-assisted chat path, BookMyShow deep-link ticket booking
 
 ### 17.2 Service Responsibility Model
 
@@ -508,6 +510,7 @@ Detailed technical internals can be expanded in the reserved appendices below.
 ### 17.4 Data Domains (High Level)
 
 - Catalog Data: stadium metadata, sport associations, media assets, match windows
+- Local Content Layer: curated fallback data (`stadium-content-data.ts`) for timelines, upcoming matches, nearby places, and gallery images — merged at hook level when API fields are null
 - Operational Data: QR mappings and client context records
 - Access Context: claims-backed profile context and protected-route policy inputs
 

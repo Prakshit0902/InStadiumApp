@@ -155,7 +155,7 @@ export function FloatingChatbot() {
   const keyboardOffset = useRef(new Animated.Value(0)).current;
   const visibility = useRef(new Animated.Value(0)).current;
   const speechModule = getSpeechModule();
-  const voiceAvailable = Boolean(speechModule?.start && speechModule?.stop && speechModule?.addListener);
+  const voiceAvailable = speechModule !== null;
 
   const disabledSend = !draft.trim() || loading;
 
