@@ -2,30 +2,48 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  ToastAndroid,
   View,
 } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
 import { useRouter } from 'expo-router';
 import { useSSO } from '@clerk/clerk-expo';
 import { useAuth } from '@/hooks/use-auth';
 import { GridLoader } from '@/components/ui/GridLoader';
 import { landingColors } from '@/components/landing/theme';
 
-WebBrowser.maybeCompleteAuthSession();
-
 type Mode = 'sign-in' | 'sign-up';
+
+function showToast(message: string) {
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
+  }
+}
 
 export default function AuthScreen() {
   const router = useRouter();
   const { initialized, isAuthenticated, user, signIn, signOut, signUp, refreshProfile, updateProfile } = useAuth();
   const { startSSOFlow } = useSSO();
+  const profileGreetingName = useMemo(() => {
+    const name = user?.name?.trim();
+    if (name) {
+      return name;
+    }
+
+    const emailPrefix = user?.email?.split('@')[0]?.trim();
+    if (emailPrefix) {
+      return emailPrefix;
+    }
+
+    return 'User';
+  }, [user?.email, user?.name]);
 
   const [mode, setMode] = useState<Mode>('sign-in');
   const [name, setName] = useState('');
@@ -77,6 +95,7 @@ export default function AuthScreen() {
     }
 
     if (mode === 'sign-in') {
+      showToast(`Hello, ${profileGreetingName}`);
       router.replace('/');
     }
   }
@@ -108,8 +127,11 @@ export default function AuthScreen() {
     setMessage(null);
 
     try {
-      const ssoCallbackPath = process.env.EXPO_PUBLIC_CLERK_SSO_CALLBACK_PATH || 'sso-callback';
-      const redirectUrl = AuthSession.makeRedirectUri({ path: ssoCallbackPath });
+      const ssoCallbackPath = 'sso-callback';
+      const redirectUrl = AuthSession.makeRedirectUri({
+        scheme: 'instadiumapp',
+        path: ssoCallbackPath,
+      });
       const result = await startSSOFlow({
         strategy: provider,
         redirectUrl,
@@ -120,6 +142,7 @@ export default function AuthScreen() {
         const profile = await refreshProfile();
         setMessage(profile.ok ? 'Signed in successfully.' : 'Signed in, but backend profile refresh failed.');
         if (profile.ok) {
+          showToast(`Hello, ${profileGreetingName}`);
           router.replace('/');
         }
         return;
@@ -158,7 +181,7 @@ export default function AuthScreen() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Text style={styles.kicker}>Clerk Auth</Text>
-          <Text style={styles.title}>{isAuthenticated ? 'Account' : title}</Text>
+          <Text style={styles.title}>{isAuthenticated ? `Hello, ${profileGreetingName}` : title}</Text>
           <Text style={styles.subtitle}>
             {isAuthenticated
               ? 'Your token is active for protected backend routes.'
@@ -174,7 +197,7 @@ export default function AuthScreen() {
 
         {isAuthenticated ? (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Signed in</Text>
+            <Text style={styles.cardTitle}>Hello, {profileGreetingName}</Text>
             {profileImageUrl ? <Image source={{ uri: profileImageUrl }} style={styles.avatar} /> : null}
 
             <TextInput
