@@ -270,7 +270,7 @@ export function FloatingChatbot() {
   }, [currentLocation]);
 
   const handleOpenChat = useCallback(async () => {
-    setOpen(true);
+    toggleChat(true);
 
     if (locationPrompted) {
       return;
@@ -299,7 +299,7 @@ export function FloatingChatbot() {
         text: 'Location is not enabled, so I will continue in regular mode without personalization.',
       },
     ]);
-  }, [locationPrompted, resolveLocation]);
+  }, [locationPrompted, resolveLocation, toggleChat]);
 
   const sendMessage = useCallback(
     async (text: string, inputMode: 'text' | 'voice') => {

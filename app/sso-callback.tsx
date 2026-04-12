@@ -22,13 +22,21 @@ export default function SsoCallbackScreen() {
       }
 
       if (isAuthenticated) {
-        await refreshProfile();
+        const profile = await refreshProfile();
         const name = user?.name?.trim() || user?.email?.split('@')[0]?.trim() || 'User';
+        if (!profile.ok) {
+          showToast('Signed in, but profile sync failed.');
+        }
         showToast(`Hello, ${name}`);
+        if (!cancelled) {
+          router.replace('/');
+        }
+        return;
       }
 
       if (!cancelled) {
-        router.replace('/');
+        showToast('Sign in did not complete. Please try again.');
+        router.replace('/auth');
       }
     }
 
@@ -37,7 +45,7 @@ export default function SsoCallbackScreen() {
     return () => {
       cancelled = true;
     };
-  }, [initialized, isAuthenticated, refreshProfile, router]);
+  }, [initialized, isAuthenticated, refreshProfile, router, user?.email, user?.name]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
