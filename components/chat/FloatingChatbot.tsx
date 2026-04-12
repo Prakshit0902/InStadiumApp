@@ -423,28 +423,42 @@ export function FloatingChatbot() {
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 18 : 8}
+          enabled={Platform.OS === 'ios'}
           style={styles.panelWrap}>
           <Animated.View
             style={[
-              styles.panel,
-              {
-                opacity: visibility,
-                transform: [
-                  {
-                    scale: visibility.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.85, 1],
-                    }),
-                  },
-                  {
-                    translateY: visibility.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [60, 0],
-                    }),
-                  },
-                ],
-              },
+              styles.panelLiftWrap,
+              Platform.OS === 'android'
+                ? {
+                    transform: [
+                      {
+                        translateY: Animated.multiply(keyboardOffset, -1),
+                      },
+                    ],
+                  }
+                : null,
             ]}>
+            <Animated.View
+              style={[
+                styles.panel,
+                {
+                  opacity: visibility,
+                  transform: [
+                    {
+                      scale: visibility.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.85, 1],
+                      }),
+                    },
+                    {
+                      translateY: visibility.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [60, 0],
+                      }),
+                    },
+                  ],
+                },
+              ]}>
             <View style={styles.headerRow}>
               <View>
                 <Text style={styles.headerTitle}>InStadium AI</Text>
@@ -530,7 +544,7 @@ export function FloatingChatbot() {
               </View>
             ) : null}
 
-            <View style={styles.inputRow}>
+              <View style={styles.inputRow}>
               <Pressable
                 style={[styles.iconButton, recognizing && styles.iconButtonActive]}
                 onPress={handleToggleVoice}
@@ -558,7 +572,8 @@ export function FloatingChatbot() {
                 disabled={disabledSend}>
                 <Ionicons name="send" size={18} color={landingColors.blush} />
               </Pressable>
-            </View>
+              </View>
+            </Animated.View>
           </Animated.View>
         </KeyboardAvoidingView>
       ) : (
@@ -603,6 +618,10 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   panelWrap: {
+    width: '100%',
+    alignItems: 'flex-end',
+  },
+  panelLiftWrap: {
     width: '100%',
     alignItems: 'flex-end',
   },

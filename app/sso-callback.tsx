@@ -15,6 +15,7 @@ export default function SsoCallbackScreen() {
 
   useEffect(() => {
     let cancelled = false;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
     async function completeAuthRedirect() {
       if (!initialized) {
@@ -34,16 +35,22 @@ export default function SsoCallbackScreen() {
         return;
       }
 
-      if (!cancelled) {
-        showToast('Sign in did not complete. Please try again.');
-        router.replace('/auth');
-      }
+      // Session hydration can lag briefly after deep-link return.
+      fallbackTimer = setTimeout(() => {
+        if (!cancelled) {
+          showToast('Sign in did not complete. Please try again.');
+          router.replace('/auth');
+        }
+      }, 4500);
     }
 
     void completeAuthRedirect();
 
     return () => {
       cancelled = true;
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+      }
     };
   }, [initialized, isAuthenticated, refreshProfile, router, user?.email, user?.name]);
 
