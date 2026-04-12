@@ -5,6 +5,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
+import * as WebBrowser from 'expo-web-browser';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import 'react-native-reanimated';
 import { ClerkProvider } from '@clerk/clerk-expo';
@@ -44,6 +45,8 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
+WebBrowser.maybeCompleteAuthSession();
 
 function InStadiumHeader({ navigation, options, route, back }: NativeStackHeaderProps) {
   const insets = useSafeAreaInsets();
@@ -112,6 +115,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="scan" options={{ title: 'Scan Stadium QR' }} />
             <Stack.Screen name="auth" options={{ title: 'Account' }} />
+            <Stack.Screen name="sso-callback" options={{ headerShown: false }} />
             <Stack.Screen name="sport/[id]" options={{ headerShown: true, title: 'Sport' }} />
             <Stack.Screen name="stadium/[id]" options={{ headerShown: true, title: 'Stadium' }} />
             <Stack.Screen name="player/[id]" options={{ headerShown: true, title: 'Player' }} />

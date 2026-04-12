@@ -2,9 +2,15 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { landingColors, landingFonts } from '@/components/landing/theme';
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  const androidBottomInset = Platform.OS === 'android' ? insets.bottom : 0;
+  // Button navigation usually reports a much larger inset than gesture mode.
+  const androidSystemNavPadding = Platform.OS === 'android' && androidBottomInset >= 24 ? androidBottomInset : 0;
+
   return (
     <Tabs
       screenOptions={{
@@ -16,8 +22,8 @@ export default function TabLayout() {
           backgroundColor: landingColors.rose,
           borderTopWidth: 0,
           elevation: 12,
-          height: Platform.OS === 'ios' ? 88 : 68,
-          paddingBottom: Platform.OS === 'ios' ? 32 : 12,
+          height: Platform.OS === 'ios' ? 88 : 68 + androidSystemNavPadding,
+          paddingBottom: Platform.OS === 'ios' ? 32 : 12 + androidSystemNavPadding,
           paddingTop: 10,
           shadowColor: '#000',
           shadowOpacity: 0.15,
