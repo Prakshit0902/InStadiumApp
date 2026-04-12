@@ -75,17 +75,22 @@ const SUGGESTION_CHIPS: SuggestionChip[] = [
   {
     id: 'top-players',
     label: 'Top Players',
-    query: 'Show top players in cricket',
+    query: 'Show Top Players',
   },
   {
     id: 'nearby-stadiums',
     label: 'Nearby Stadiums',
-    query: 'Show nearby stadiums',
+    query: 'Show Nearby Stadiums',
   },
   {
-    id: 'sports',
-    label: 'Sports',
-    query: 'Show all sports available in app',
+    id: 'ipl-schedule',
+    label: 'IPL Schedule',
+    query: 'Show IPL Schedule',
+  },
+  {
+    id: 'stadium-guides',
+    label: 'Stadium Guides',
+    query: 'Show Stadium Guides',
   },
 ];
 
@@ -460,9 +465,18 @@ export function FloatingChatbot() {
                 },
               ]}>
             <View style={styles.headerRow}>
-              <View>
-                <Text style={styles.headerTitle}>InStadium AI</Text>
-                <Text style={styles.headerSub}>Players, stadiums, sports</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={styles.headerIconWrap}>
+                   <Image
+                    source={{ uri: 'https://res.cloudinary.com/daud2uqqf/image/upload/v1775915480/logobot_k3d6xa.gif' }}
+                    style={{ width: 32, height: 32 }}
+                    contentFit="contain"
+                  />
+                </View>
+                <View>
+                  <Text style={styles.headerTitle}>InStadium AI</Text>
+                  <Text style={styles.headerSub}>Players, stadiums, sports</Text>
+                </View>
               </View>
               <Pressable hitSlop={8} onPress={() => toggleChat(false)}>
                 <Ionicons name="close" size={20} color={landingColors.blush} />
@@ -475,7 +489,17 @@ export function FloatingChatbot() {
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}>
               {lastThreeMessages.map((msg) => (
-                <View key={msg.id} style={[styles.bubble, msg.role === 'user' ? styles.userBubble : styles.assistantBubble]}>
+                <View key={msg.id} style={[styles.messageRow, msg.role === 'user' ? styles.userRow : styles.assistantRow]}>
+                  {msg.role === 'assistant' && (
+                    <View style={styles.messageAvatarWrap}>
+                      <Image
+                        source={{ uri: 'https://res.cloudinary.com/daud2uqqf/image/upload/v1775915480/logobot_k3d6xa.gif' }}
+                        style={{ width: 24, height: 24 }}
+                        contentFit="contain"
+                      />
+                    </View>
+                  )}
+                  <View style={[styles.bubble, msg.role === 'user' ? styles.userBubble : styles.assistantBubble]}>
                   <Text style={msg.role === 'user' ? styles.userText : styles.assistantText}>{msg.text}</Text>
 
                   {msg.links?.length ? (
@@ -516,7 +540,8 @@ export function FloatingChatbot() {
                     </View>
                   ) : null}
                 </View>
-              ))}
+              </View>
+            ))}
 
               {loading && (
                 <View style={[styles.bubble, styles.assistantBubble, styles.loadingBubble]}>
@@ -648,6 +673,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
+  headerIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
   headerTitle: {
     fontSize: 18,
     color: landingColors.blush,
@@ -668,8 +702,32 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 10,
   },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    marginVertical: 4,
+  },
+  userRow: {
+    justifyContent: 'flex-end',
+  },
+  assistantRow: {
+    justifyContent: 'flex-start',
+  },
+  messageAvatarWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(129, 0, 0, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
   bubble: {
-    maxWidth: '85%',
+    maxWidth: '80%',
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
