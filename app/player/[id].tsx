@@ -33,8 +33,11 @@ function decodeParam(value: string | undefined) {
   }
 }
 
-function toFirstName(name: string) {
-  return (name || 'Player').trim().split(/\s+/)[0] || 'Player';
+function toFirstName(name: unknown) {
+  if (typeof name !== 'string') {
+    return 'Player';
+  }
+  return name.trim().split(/\s+/)[0] || 'Player';
 }
 
 function fallbackPlayer(params: {
@@ -212,7 +215,9 @@ export default function PlayerDetailScreen() {
           <View style={styles.heroContent}>
             <Text style={styles.heroKicker}>The Legend of {sportName}</Text>
             <Text style={styles.heroName}>{player.name}</Text>
-            {!!player.bio && <Text style={styles.heroQuote}>{`"${player.bio.split('\n')[0] || player.bio}"`}</Text>}
+            {typeof player.bio === 'string' && player.bio.trim().length > 0 && (
+              <Text style={styles.heroQuote}>{`"${player.bio.split('\n')[0] || player.bio}"`}</Text>
+            )}
 
             {stats.length > 0 && (
               <View style={styles.statsRow}>
@@ -227,7 +232,7 @@ export default function PlayerDetailScreen() {
           </View>
         </View>
 
-        {!!player.bio && (
+        {typeof player.bio === 'string' && player.bio.trim().length > 0 && (
           <View style={styles.storySection}>
             <Text style={styles.sectionKicker}>Story</Text>
             <Text style={styles.sectionTitle}>

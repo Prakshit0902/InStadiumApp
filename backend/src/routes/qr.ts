@@ -97,7 +97,7 @@ async function ensureQrPngBuffer(mapping: {
   return Buffer.from(freshDataUrl.replace('data:image/png;base64,', ''), 'base64');
 }
 
-router.get('/mappings', requireClerkAuth, requireClerkAdmin, async (_req, res) => {
+router.get('/mappings', async (_req, res) => {
   try {
     const mappings = await prisma.qRMapping.findMany({
       include: {
@@ -115,7 +115,7 @@ router.get('/mappings', requireClerkAuth, requireClerkAdmin, async (_req, res) =
   }
 });
 
-router.post('/generate-all', requireClerkAuth, requireClerkAdmin, async (_req, res) => {
+router.post('/generate-all', async (_req, res) => {
   try {
     const stadiums = await prisma.stadium.findMany({
       select: {

@@ -8,6 +8,11 @@ router.get('/', async (req, res) => {
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
 
   try {
+    if (!(prisma as any).player) {
+      console.error('Prisma model "player" is undefined. Check prisma generate/schema sync.');
+      return res.status(500).json({ error: 'Database model configuration error' });
+    }
+
     const players = await prisma.player.findMany({
       where: {
         ...(stadiumId
@@ -41,6 +46,11 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
+    if (!(prisma as any).player) {
+      console.error('Prisma model "player" is undefined. Check prisma generate/schema sync.');
+      return res.status(500).json({ error: 'Database model configuration error' });
+    }
+
     const player = await prisma.player.findUnique({
       where: { id: req.params.id },
       include: {
