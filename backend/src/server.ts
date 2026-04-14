@@ -28,9 +28,13 @@ app.use(
     crossOriginResourcePolicy: false,
   })
 );
+const allowedOrigins = rawOrigins && rawOrigins.length > 0 
+  ? [...rawOrigins, 'https://instadiumqr.vercel.app'] 
+  : true;
+
 app.use(
   cors({
-    origin: rawOrigins && rawOrigins.length > 0 ? rawOrigins : true,
+    origin: allowedOrigins,
   })
 );
 app.use(express.json({ limit: '1mb' }));
