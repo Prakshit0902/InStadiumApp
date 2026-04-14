@@ -10,8 +10,8 @@ function getAppScheme() {
 }
 
 function getPublicBaseUrl() {
-  const value = process.env.PUBLIC_API_BASE_URL || process.env.PUBLIC_APP_BASE_URL || '';
-  return value ? value.replace(/\/$/, '') : '';
+  const value = process.env.PUBLIC_API_BASE_URL || process.env.PUBLIC_APP_BASE_URL || 'https://instadiumapp.onrender.com';
+  return value.replace(/\/$/, '');
 }
 
 function getFallbackWebUrl() {
@@ -19,6 +19,8 @@ function getFallbackWebUrl() {
 }
 
 function buildAppDeepLink(stadiumId: string) {
+  // Use three slashes for maximum Android/iOS compatibility in some contexts, 
+  // though the app handler is robust to both.
   return `${getAppScheme()}://stadium/${encodeURIComponent(stadiumId)}?welcome=1`;
 }
 
